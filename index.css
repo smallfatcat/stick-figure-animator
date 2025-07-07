@@ -1,3 +1,5 @@
+
+
 body {
     margin: 0;
     padding: 0;
@@ -26,12 +28,21 @@ canvas#game-canvas {
 #controls-panel {
     position: absolute;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    top: 555px; /* Aligns with where canvas buttons were */
+    gap: 5px; /* Gap between rows */
+    top: 545px; /* 540 (posing area) + 5 (margin) */
     left: 0;
     width: 800px; /* Match canvas width */
+    height: 65px; /* Two rows of 30px + 5px gap */
+}
+
+.controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Original gap between items */
     height: 30px;
 }
 
@@ -46,7 +57,15 @@ canvas#game-canvas {
     font-weight: bold;
     font-size: 14px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s; /* Add color to transition for SVG */
+}
+
+#controls-panel button.icon-btn {
+    padding: 0;
+    width: 38px; /* Uniform width for icon buttons */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #controls-panel button:hover:not(:disabled) {
@@ -124,5 +143,31 @@ canvas#game-canvas {
 #duration-input:disabled {
     background-color: #555;
     color: #999;
+    cursor: not-allowed;
+}
+
+.duration-control #time-mode-toggle-btn {
+    background-color: #4f4f4f;
+    color: #ddd;
+    border: 1px solid #666;
+    padding: 0 8px;
+    height: 80%;
+    border-radius: 2px;
+    font-family: inherit;
+    font-weight: normal;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-left: 4px;
+}
+
+.duration-control #time-mode-toggle-btn:hover:not(:disabled) {
+    background-color: #636363;
+}
+
+.duration-control #time-mode-toggle-btn:disabled {
+    background-color: #3a3a3a;
+    color: #888;
+    border-color: #555;
     cursor: not-allowed;
 }

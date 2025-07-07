@@ -1,4 +1,5 @@
-import { StickFigurePose } from './types';
+
+import { StickFigurePose, Keyframe } from './types';
 import { AppState } from './state';
 
 /**
@@ -46,20 +47,24 @@ export function interpolatePose(
     return { hip: interpolatedHip, angles: interpolatedAngles };
 }
 
-
 /**
- * Updates the main stick figure pose in the state based on the current animation progress.
- * This is used for both playing the animation and scrubbing the timeline.
+ * Pure function to get an interpolated pose at a specific animation progress.
+ * @param progress Normalized animation progress (0.0 to 1.0).
+ * @param keyframes The array of keyframes to interpolate between.
+ * @returns An interpolated StickFigurePose or null if not possible.
  */
-export function updatePoseForAnimationProgress(state: AppState) {
-    const progress = state.animationProgress;
-    if (state.keyframes.length < 2) {
-        return;
+export function getPoseAtProgress(progress: number, keyframes: Keyframe[]): StickFigurePose | null {
+    if (keyframes.length === 0) {
+        return null;
     }
+    if (keyframes.length === 1) {
+        return JSON.parse(JSON.stringify(keyframes[0].pose));
+    }
+
     let sourceFrameIndex = -1;
     // Find the current segment
-    for (let i = 0; i < state.keyframes.length - 1; i++) {
-        if (progress >= state.keyframes[i].time && progress <= state.keyframes[i+1].time) {
+    for (let i = 0; i < keyframes.length - 1; i++) {
+        if (progress >= keyframes[i].time && progress <= keyframes[i+1].time) {
             sourceFrameIndex = i;
             break;
         }
@@ -68,20 +73,34 @@ export function updatePoseForAnimationProgress(state: AppState) {
     if (sourceFrameIndex === -1) {
         // Before the first keyframe or after the last one
         if (progress >= 1.0) {
-           state.stickFigurePose = JSON.parse(JSON.stringify(state.keyframes[state.keyframes.length - 1].pose));
+           return JSON.parse(JSON.stringify(keyframes[keyframes.length - 1].pose));
         } else {
-           state.stickFigurePose = JSON.parse(JSON.stringify(state.keyframes[0].pose));
+           return JSON.parse(JSON.stringify(keyframes[0].pose));
         }
     } else {
         const targetFrameIndex = sourceFrameIndex + 1;
-        const sourceFrame = state.keyframes[sourceFrameIndex];
-        const targetFrame = state.keyframes[targetFrameIndex];
+        const sourceFrame = keyframes[sourceFrameIndex];
+        const targetFrame = keyframes[targetFrameIndex];
 
         const segmentDuration = targetFrame.time - sourceFrame.time;
         const timeIntoSegment = progress - sourceFrame.time;
         
         const segmentProgress = (segmentDuration === 0) ? 1 : Math.min(1, timeIntoSegment / segmentDuration);
 
-        state.stickFigurePose = interpolatePose(sourceFrame.pose, targetFrame.pose, segmentProgress);
+        return interpolatePose(sourceFrame.pose, targetFrame.pose, segmentProgress);
+    }
+}
+
+
+/**
+ * Updates the main stick figure pose in the state based on the current animation progress.
+ * This is used for both playing the animation and scrubbing the timeline.
+ */
+export function updatePoseForAnimationProgress(state: AppState) {
+    if (state.keyframes.length === 0) return;
+
+    const newPose = getPoseAtProgress(state.animationProgress, state.keyframes);
+    if (newPose) {
+        state.stickFigurePose = newPose;
     }
 }

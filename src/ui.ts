@@ -1,3 +1,5 @@
+
+
 import { Rect, Keyframe, StickFigurePose } from './types';
 import { drawStickFigure } from './drawing';
 import { calculatePointsFromPose } from './kinematics';
@@ -36,21 +38,36 @@ function drawScrollControls(
     isLeftDisabled: boolean, isRightDisabled: boolean,
     isGloballyDisabled: boolean = false
 ) {
-    ctx.font = 'bold 24px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
     const leftReallyDisabled = isLeftDisabled || isGloballyDisabled;
     ctx.fillStyle = leftReallyDisabled ? '#444' : isHoverLeft ? '#888' : '#666';
     ctx.fillRect(leftRect.x, leftRect.y, leftRect.width, leftRect.height);
-    ctx.fillStyle = leftReallyDisabled ? '#666' : '#FFF';
-    ctx.fillText('‹', leftRect.x + leftRect.width / 2, leftRect.y + leftRect.height / 2);
 
     const rightReallyDisabled = isRightDisabled || isGloballyDisabled;
     ctx.fillStyle = rightReallyDisabled ? '#444' : isHoverRight ? '#888' : '#666';
     ctx.fillRect(rightRect.x, rightRect.y, rightRect.width, rightRect.height);
-    ctx.fillStyle = rightReallyDisabled ? '#666' : '#FFF';
-    ctx.fillText('›', rightRect.x + rightRect.width / 2, rightRect.y + rightRect.height / 2);
+
+    // Common arrow style
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const arrowW = leftRect.width * 0.2;
+    const arrowH = leftRect.height * 0.25;
+
+    // Draw Left Arrow
+    ctx.strokeStyle = leftReallyDisabled ? '#666' : '#FFF';
+    ctx.beginPath();
+    ctx.moveTo(leftRect.x + leftRect.width / 2 + arrowW, leftRect.y + leftRect.height / 2 - arrowH);
+    ctx.lineTo(leftRect.x + leftRect.width / 2 - arrowW, leftRect.y + leftRect.height / 2);
+    ctx.lineTo(leftRect.x + leftRect.width / 2 + arrowW, leftRect.y + leftRect.height / 2 + arrowH);
+    ctx.stroke();
+
+    // Draw Right Arrow
+    ctx.strokeStyle = rightReallyDisabled ? '#666' : '#FFF';
+    ctx.beginPath();
+    ctx.moveTo(rightRect.x + rightRect.width / 2 - arrowW, rightRect.y + rightRect.height / 2 - arrowH);
+    ctx.lineTo(rightRect.x + rightRect.width / 2 + arrowW, rightRect.y + rightRect.height / 2);
+    ctx.lineTo(rightRect.x + rightRect.width / 2 - arrowW, rightRect.y + rightRect.height / 2 + arrowH);
+    ctx.stroke();
 }
 
 function drawThumbnails(
@@ -68,7 +85,9 @@ function drawThumbnails(
     hoveredDeleteIconIndex: number | null,
     draggedThumbnailIndex: number | null,
     dropTargetIndex: number | null,
-    thumbnailGap: number
+    thumbnailGap: number,
+    animationTotalDuration: number,
+    timeDisplayMode: 'seconds' | 'frames'
 ) {
     // Draw drop indicator line if dragging
     if (dropTargetIndex !== null && draggedThumbnailIndex !== null) {
@@ -138,6 +157,23 @@ function drawThumbnails(
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
             ctx.fillText(String(actualIndex + 1), rect.x + 4, rect.y + 4);
+
+            // Draw time
+            const keyframe = keyframes[actualIndex];
+            let timeText = '';
+            if (timeDisplayMode === 'seconds') {
+                const timeInSeconds = (keyframe.time * animationTotalDuration / 1000).toFixed(1);
+                timeText = `${timeInSeconds}s`;
+            } else { // frames
+                const frameNumber = Math.round(keyframe.time * (animationTotalDuration / 1000) * 60);
+                timeText = `${frameNumber}f`;
+            }
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(timeText, rect.x + rect.width - 4, rect.y + rect.height - 4);
 
             // Draw delete button
             const deleteRect = getDeleteButtonRect(rect);
@@ -238,14 +274,14 @@ export function createLayout(canvasWidth: number, canvasHeight: number) {
     const POSING_AREA_HEIGHT = canvasHeight - UI_PANEL_HEIGHT;
     const GROUND_Y_POSITION = 396;
     
-    const CONTROLS_PANEL_HEIGHT = 30;
-    const CONTROLS_TOP_MARGIN = 15;
-    const TIMELINE_Y = POSING_AREA_HEIGHT + CONTROLS_TOP_MARGIN + CONTROLS_PANEL_HEIGHT + 15;
+    const CONTROLS_PANEL_HEIGHT = 65; // Updated for two rows
+    const CONTROLS_TOP_MARGIN = 5; // Reduced margin
+    const TIMELINE_Y = POSING_AREA_HEIGHT + CONTROLS_TOP_MARGIN + CONTROLS_PANEL_HEIGHT + 5; // Tighter layout
     const TIMELINE_RECT: Rect = { x: 50, y: TIMELINE_Y, width: canvasWidth - 100, height: 12 };
 
     const THUMBNAIL_WIDTH = 100;
     const THUMBNAIL_HEIGHT = 75;
-    const THUMBNAIL_Y = TIMELINE_Y + TIMELINE_RECT.height + 15;
+    const THUMBNAIL_Y = TIMELINE_Y + TIMELINE_RECT.height + 5; // Tighter layout
     const THUMBNAIL_GAP = 10;
     const VISIBLE_THUMBNAILS = 5;
     const GUIDE_GRABBER_SIZE = 40;
@@ -316,7 +352,9 @@ export function drawUI(
         state.hoveredDeleteIconIndex,
         state.draggedThumbnailIndex,
         state.dropTargetIndex,
-        layout.THUMBNAIL_GAP
+        layout.THUMBNAIL_GAP,
+        state.animationTotalDuration,
+        state.timeDisplayMode
     );
 
     const isLeftDisabled = state.scrollOffset === 0;

@@ -1,9 +1,9 @@
+
 import { AppState } from './state';
 import { Layout, drawUI, getTimelineMarkerRect } from './ui';
 import { KinematicsData, calculatePointsFromPose } from './kinematics';
 import { drawGuides, drawStickFigure, drawGrabHandles } from './drawing';
 import { DOMElements } from './dom';
-import { updateControlsState } from './controls';
 
 export function redraw(
     ctx: CanvasRenderingContext2D,
@@ -26,6 +26,11 @@ export function redraw(
     }
     
     drawGuides(ctx, state.groundY, state.verticalGuideX, canvas.width, layout.POSING_AREA_HEIGHT, layout.GUIDE_GRABBER_SIZE, state.hoveredGround, state.hoveredVerticalGuide);
+    
+    // Draw the pre-rendered full onion skin trail if it exists
+    if (state.isAnimating && state.onionTrailCanvas) {
+        ctx.drawImage(state.onionTrailCanvas, 0, 0);
+    }
     
     if (state.isOnionModeEnabled && state.activeKeyframeIndex !== null) {
         const activeIndex = state.activeKeyframeIndex;
@@ -67,8 +72,6 @@ export function redraw(
 
     drawUI(ctx, canvas.width, canvas.height, layout, state, kinematics);
     
-    updateControlsState(domElements, state);
-
     // Update cursor style based on current interactions
     if (state.draggedThumbnailIndex !== null) {
         canvas.style.cursor = 'grabbing';

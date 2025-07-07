@@ -27,3 +27,5 @@ export type Kinematics = {
     children: { [key: string]: string[] };
     boneLengths: { [key: string]: number };
 };
+
+export type RedrawFunction = () => void;

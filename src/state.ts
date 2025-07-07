@@ -1,3 +1,4 @@
+
 import { Point, StickFigurePoints, StickFigurePose, Keyframe } from './types';
 import { Layout } from './ui';
 import { KinematicsData } from './kinematics';
@@ -33,6 +34,9 @@ export interface AppState {
   isOnionModeEnabled: boolean;
   onionSkinBefore: number;
   onionSkinAfter: number;
+  isFullOnionSkinEnabled: boolean;
+  motionTrailResolution: number;
+  onionTrailCanvas: HTMLCanvasElement | null;
 
   isAnimating: boolean;
   isPaused: boolean;
@@ -42,6 +46,7 @@ export interface AppState {
   timeElapsedBeforePause: number;
   animationTotalDuration: number;
   animationProgress: number;
+  timeDisplayMode: 'seconds' | 'frames';
 }
 
 export function createAppState(kinematics: KinematicsData, layout: Layout): AppState {
@@ -72,6 +77,9 @@ export function createAppState(kinematics: KinematicsData, layout: Layout): AppS
         isOnionModeEnabled: false,
         onionSkinBefore: 5,
         onionSkinAfter: 5,
+        isFullOnionSkinEnabled: false,
+        motionTrailResolution: 1,
+        onionTrailCanvas: null,
         isAnimating: false,
         isPaused: false,
         animationMode: 'loop',
@@ -80,5 +88,6 @@ export function createAppState(kinematics: KinematicsData, layout: Layout): AppS
         timeElapsedBeforePause: 0,
         animationTotalDuration: 5000,
         animationProgress: 0,
+        timeDisplayMode: 'seconds',
     };
 }

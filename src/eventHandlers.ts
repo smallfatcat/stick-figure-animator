@@ -1,3 +1,4 @@
+
 import { AppState } from './state';
 import { DOMElements } from './dom';
 import { Layout, getDeleteButtonRect, getTimelineMarkerRect } from './ui';
@@ -5,38 +6,37 @@ import { KinematicsData, calculatePointsFromPose } from './kinematics';
 import { startAnimation, stopAnimation, pauseAnimation, resumeAnimation } from './animationLoop';
 import { autoSaveCurrentPoseIfActive, addKeyframe, deleteKeyframe, insertKeyframeAtTime, redistributeKeyframeTimes } from './keyframeManager';
 import { getMousePos, isInside, exportKeyframesAsJSON, loadKeyframesFromFile } from './utils';
-import { Rect, StickFigurePoints, Keyframe } from './types';
+import { Rect, StickFigurePoints, Keyframe, RedrawFunction } from './types';
 import { updatePoseForAnimationProgress } from './animation';
-
-type RedrawFunction = () => void;
 
 export function setupEventHandlers(
     dom: DOMElements, 
     state: AppState, 
     layout: Layout, 
     kinematics: KinematicsData,
-    redraw: RedrawFunction
+    updateUI: RedrawFunction,
+    redrawCanvas: RedrawFunction
 ) {
-    const { canvas, animateBtn, pauseBtn, modeBtn, onionBtn, exportBtn, importBtn, importInput, durationInput, onionBeforeInput, onionAfterInput, insertKeyframeBtn } = dom;
+    const { canvas, animateBtn, pauseBtn, modeBtn, onionBtn, exportBtn, importBtn, importInput, durationInput, onionBeforeInput, onionAfterInput, insertKeyframeBtn, timeModeToggleBtn, fullOnionSkinBtn, motionTrailStepInput } = dom;
     const { defaultPose, hierarchy, boneLengths, children } = kinematics;
     const grabRadius = 15;
     const GUIDE_GRAB_BUFFER = 10;
 
     animateBtn.addEventListener('click', () => {
         if (state.isAnimating) {
-            stopAnimation(state, redraw);
+            stopAnimation(state, updateUI);
         } else if (state.keyframes.length >= 2) {
             autoSaveCurrentPoseIfActive(state);
-            startAnimation(state, redraw);
+            startAnimation(state, updateUI, redrawCanvas, kinematics, layout, canvas);
         }
     });
 
     pauseBtn.addEventListener('click', () => {
         if (!state.isAnimating) return;
         if (state.isPaused) {
-            resumeAnimation(state, redraw);
+            resumeAnimation(state, updateUI, redrawCanvas);
         } else {
-            pauseAnimation(state, redraw);
+            pauseAnimation(state, updateUI);
         }
     });
 
@@ -65,26 +65,41 @@ export function setupEventHandlers(
             state.scrollOffset = state.activeKeyframeIndex - layout.VISIBLE_THUMBNAILS + 1;
         }
 
-        redraw();
+        updateUI();
     });
 
     modeBtn.addEventListener('click', () => {
-        if (state.isAnimating || state.keyframes.length < 2) return;
+        if (state.keyframes.length < 2) return;
         state.animationMode = state.animationMode === 'loop' ? 'ping-pong' : 'loop';
-        redraw();
+        updateUI();
     });
 
     onionBtn.addEventListener('click', () => {
         if (state.isAnimating || state.activeKeyframeIndex === null) return;
         state.isOnionModeEnabled = !state.isOnionModeEnabled;
-        redraw();
+        updateUI();
+    });
+
+    fullOnionSkinBtn.addEventListener('click', () => {
+        if (fullOnionSkinBtn.disabled) return;
+        state.isFullOnionSkinEnabled = !state.isFullOnionSkinEnabled;
+        updateUI();
+    });
+
+    motionTrailStepInput.addEventListener('change', () => {
+        const value = parseInt(motionTrailStepInput.value, 10);
+        if (!isNaN(value) && value >= 1) {
+            state.motionTrailResolution = value;
+        } else {
+            motionTrailStepInput.value = state.motionTrailResolution.toString();
+        }
     });
 
     onionBeforeInput.addEventListener('change', () => {
         const value = parseInt(onionBeforeInput.value, 10);
         if (!isNaN(value) && value >= 0) {
             state.onionSkinBefore = value;
-            if (state.isOnionModeEnabled) redraw();
+            if (state.isOnionModeEnabled) updateUI();
         } else {
             onionBeforeInput.value = state.onionSkinBefore.toString();
         }
@@ -94,7 +109,7 @@ export function setupEventHandlers(
         const value = parseInt(onionAfterInput.value, 10);
         if (!isNaN(value) && value >= 0) {
             state.onionSkinAfter = value;
-            if (state.isOnionModeEnabled) redraw();
+            if (state.isOnionModeEnabled) updateUI();
         } else {
             onionAfterInput.value = state.onionSkinAfter.toString();
         }
@@ -131,7 +146,7 @@ export function setupEventHandlers(
                 }
                 
                 state.isOnionModeEnabled = false;
-                redraw();
+                updateUI();
             } catch (error) {
                 alert("Failed to load keyframes. Please check the file format.");
             }
@@ -139,14 +154,29 @@ export function setupEventHandlers(
         (e.target as HTMLInputElement).value = '';
     });
 
+    timeModeToggleBtn.addEventListener('click', () => {
+        if (state.isAnimating) return;
+        state.timeDisplayMode = state.timeDisplayMode === 'seconds' ? 'frames' : 'seconds';
+        updateUI();
+    });
+
     durationInput.addEventListener('change', () => {
-        const newDuration = parseFloat(durationInput.value);
-        if (!isNaN(newDuration) && newDuration > 0) {
-            state.animationTotalDuration = newDuration * 1000;
-        } else {
-            durationInput.value = (state.animationTotalDuration / 1000).toString();
-            alert("Invalid duration. Please enter a positive number.");
+        if (state.timeDisplayMode === 'seconds') {
+            const value = parseFloat(durationInput.value);
+            if (!isNaN(value) && value > 0) {
+                state.animationTotalDuration = value * 1000;
+            } else {
+                alert("Invalid duration. Please enter a positive number.");
+            }
+        } else { // frames
+            const frameValue = parseInt(durationInput.value, 10);
+             if (!isNaN(frameValue) && frameValue > 0) {
+                state.animationTotalDuration = (frameValue / 60) * 1000;
+            } else {
+                alert("Invalid duration. Please enter a positive integer for frames.");
+            }
         }
+        updateUI();
     });
 
     canvas.addEventListener('mousedown', (e) => {
@@ -156,7 +186,7 @@ export function setupEventHandlers(
         if (state.hoveredPlayhead) {
             state.isDraggingPlayhead = true;
             state.activeKeyframeIndex = null; // Deselect keyframe while scrubbing
-            redraw();
+            updateUI();
             return;
         }
 
@@ -176,7 +206,7 @@ export function setupEventHandlers(
             if (state.hoveredMarkerIndex > 0 && state.hoveredMarkerIndex < state.keyframes.length - 1) {
                 state.draggedMarkerIndex = state.hoveredMarkerIndex;
             }
-            redraw();
+            updateUI();
             return;
         }
 
@@ -193,17 +223,17 @@ export function setupEventHandlers(
 
         if (state.hoveredDeleteIconIndex !== null) {
             deleteKeyframe(state, state.hoveredDeleteIconIndex, defaultPose, layout);
-            redraw();
+            updateUI();
             return;
         }
 
         if (isInside(mousePos, layout.SCROLL_LEFT_BUTTON_RECT)) {
             state.scrollOffset = Math.max(0, state.scrollOffset - 1);
-            redraw(); return;
+            updateUI(); return;
         }
         if (isInside(mousePos, layout.SCROLL_RIGHT_BUTTON_RECT)) {
             state.scrollOffset = Math.min(state.scrollOffset + 1, Math.max(0, state.keyframes.length - layout.VISIBLE_THUMBNAILS));
-            redraw(); return;
+            updateUI(); return;
         }
 
         for (let i = 0; i < layout.THUMBNAIL_RECTS.length; i++) {
@@ -217,7 +247,7 @@ export function setupEventHandlers(
                 }
                 // Start dragging the thumbnail
                 state.draggedThumbnailIndex = clickedIndex;
-                redraw();
+                updateUI();
                 return;
             }
         }
@@ -237,7 +267,7 @@ export function setupEventHandlers(
 
         if (!state.draggedPointKey && mousePos.y < layout.POSING_AREA_HEIGHT) {
             addKeyframe(state, layout);
-            redraw();
+            updateUI();
         }
     });
 
@@ -263,7 +293,7 @@ export function setupEventHandlers(
                     break;
                 }
             }
-            redraw();
+            updateUI();
             return;
         }
 
@@ -277,7 +307,7 @@ export function setupEventHandlers(
             state.timeElapsedBeforePause = state.animationProgress * state.animationTotalDuration;
             
             updatePoseForAnimationProgress(state);
-            redraw();
+            updateUI();
             return;
         }
 
@@ -291,18 +321,18 @@ export function setupEventHandlers(
             newTime = Math.max(prevTime, Math.min(newTime, nextTime));
             
             state.keyframes[state.draggedMarkerIndex].time = newTime;
-            redraw();
+            updateUI();
             return;
         }
 
         if (state.isDraggingGround) {
             state.groundY = Math.max(0, Math.min(mousePos.y, layout.POSING_AREA_HEIGHT));
-            redraw();
+            updateUI();
             return;
         }
         if (state.isDraggingVerticalGuide) {
             state.verticalGuideX = Math.max(0, Math.min(mousePos.x, canvas.width));
-            redraw();
+            updateUI();
             return;
         }
         
@@ -375,7 +405,7 @@ export function setupEventHandlers(
                 state.stickFigurePose.angles[state.draggedPointKey] = newAngle;
             }
         }
-        redraw();
+        updateUI();
     });
 
     canvas.addEventListener('mouseup', () => { 
@@ -409,7 +439,7 @@ export function setupEventHandlers(
         state.isDraggingPlayhead = false;
         state.draggedThumbnailIndex = null;
         state.dropTargetIndex = null;
-        redraw();
+        updateUI();
     });
 
     canvas.addEventListener('mouseleave', () => {
@@ -433,7 +463,7 @@ export function setupEventHandlers(
             state.hoveredMarkerIndex = null;
             state.hoveredPlayhead = false;
         }
-        redraw();
+        updateUI();
     });
 
     window.addEventListener('keydown', (e) => {
@@ -464,7 +494,7 @@ export function setupEventHandlers(
                 } else if (state.activeKeyframeIndex >= state.scrollOffset + layout.VISIBLE_THUMBNAILS) {
                     state.scrollOffset = state.activeKeyframeIndex - layout.VISIBLE_THUMBNAILS + 1;
                 }
-                redraw();
+                updateUI();
             }
         }
     });
