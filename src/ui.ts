@@ -1,6 +1,8 @@
-import { Rect, Keyframe, Kinematics, StickFigurePose } from './types';
+import { Rect, Keyframe, StickFigurePose } from './types';
 import { drawStickFigure } from './drawing';
 import { calculatePointsFromPose } from './kinematics';
+import { AppState } from './state';
+import { KinematicsData } from './kinematics';
 
 // --- UI Drawing Functions ---
 
@@ -25,23 +27,6 @@ export function getTimelineMarkerRect(keyframe: Keyframe, timelineRect: Rect): R
         width: markerSize,
         height: markerSize,
     };
-}
-
-function drawButton(ctx: CanvasRenderingContext2D, rect: Rect, text: string, isHovered: boolean, isDisabled: boolean = false, isActive: boolean = false) {
-    if (isDisabled) {
-        ctx.fillStyle = '#555';
-    } else if (isActive) {
-        ctx.fillStyle = '#f0ad4e';
-    } else {
-        ctx.fillStyle = isHovered ? '#ec9b2e' : '#c78f3d';
-    }
-    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-    
-    ctx.fillStyle = isDisabled ? '#999' : (isActive ? '#FFFFFF' : '#121212');
-    ctx.font = 'bold 16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, rect.x + rect.width / 2, rect.y + rect.height / 2);
 }
 
 function drawScrollControls(
@@ -79,7 +64,7 @@ function drawThumbnails(
     canvasWidth: number,
     posingAreaHeight: number,
     isAnimating: boolean,
-    kinematics: Kinematics,
+    kinematics: KinematicsData,
     hoveredDeleteIconIndex: number | null
 ) {
     rects.forEach((rect, visibleIndex) => {
@@ -210,21 +195,10 @@ export function createLayout(canvasWidth: number, canvasHeight: number) {
     const UI_PANEL_HEIGHT = 180;
     const POSING_AREA_HEIGHT = canvasHeight - UI_PANEL_HEIGHT;
     const GROUND_Y_POSITION = 396;
-    const centerX = canvasWidth / 2;
-    const BUTTON_WIDTH = 65;
-    const BUTTON_GAP = 8;
-    const totalButtonWidth = (BUTTON_WIDTH * 6) + (BUTTON_GAP * 5);
-    const buttonStartY = POSING_AREA_HEIGHT + 15;
-    const buttonStartX = centerX - totalButtonWidth / 2;
     
-    const ANIMATE_BUTTON_RECT: Rect = { x: buttonStartX, y: buttonStartY, width: BUTTON_WIDTH, height: 35 };
-    const PAUSE_BUTTON_RECT: Rect = { x: ANIMATE_BUTTON_RECT.x + BUTTON_WIDTH + BUTTON_GAP, y: buttonStartY, width: BUTTON_WIDTH, height: 35 };
-    const MODE_BUTTON_RECT: Rect = { x: PAUSE_BUTTON_RECT.x + BUTTON_WIDTH + BUTTON_GAP, y: buttonStartY, width: BUTTON_WIDTH, height: 35 };
-    const ONION_BUTTON_RECT: Rect = { x: MODE_BUTTON_RECT.x + BUTTON_WIDTH + BUTTON_GAP, y: buttonStartY, width: BUTTON_WIDTH, height: 35 };
-    const EXPORT_BUTTON_RECT: Rect = { x: ONION_BUTTON_RECT.x + BUTTON_WIDTH + BUTTON_GAP, y: buttonStartY, width: BUTTON_WIDTH, height: 35 };
-    const IMPORT_BUTTON_RECT: Rect = { x: EXPORT_BUTTON_RECT.x + BUTTON_WIDTH + BUTTON_GAP, y: buttonStartY, width: BUTTON_WIDTH, height: 35 };
-
-    const TIMELINE_Y = ANIMATE_BUTTON_RECT.y + ANIMATE_BUTTON_RECT.height + 15;
+    const CONTROLS_PANEL_HEIGHT = 35;
+    const CONTROLS_TOP_MARGIN = 15;
+    const TIMELINE_Y = POSING_AREA_HEIGHT + CONTROLS_TOP_MARGIN + CONTROLS_PANEL_HEIGHT + 15;
     const TIMELINE_RECT: Rect = { x: 50, y: TIMELINE_Y, width: canvasWidth - 100, height: 12 };
 
     const THUMBNAIL_WIDTH = 100;
@@ -249,12 +223,6 @@ export function createLayout(canvasWidth: number, canvasHeight: number) {
         UI_PANEL_HEIGHT,
         POSING_AREA_HEIGHT,
         GROUND_Y_POSITION,
-        ANIMATE_BUTTON_RECT,
-        PAUSE_BUTTON_RECT,
-        MODE_BUTTON_RECT,
-        ONION_BUTTON_RECT,
-        EXPORT_BUTTON_RECT,
-        IMPORT_BUTTON_RECT,
         TIMELINE_RECT,
         THUMBNAIL_RECTS,
         VISIBLE_THUMBNAILS,
@@ -271,8 +239,8 @@ export function drawUI(
     canvasWidth: number,
     canvasHeight: number,
     layout: Layout,
-    state: any, // Using any for state object for simplicity in this refactor
-    kinematics: Kinematics
+    state: AppState,
+    kinematics: KinematicsData
 ) {
     const UI_PANEL_Y = layout.POSING_AREA_HEIGHT;
 
@@ -281,26 +249,6 @@ export function drawUI(
     ctx.strokeStyle = '#444';
     ctx.lineWidth = 1;
     ctx.strokeRect(0, UI_PANEL_Y, canvasWidth, canvasHeight - UI_PANEL_Y);
-
-    const animateButtonText = state.isAnimating ? 'Stop' : 'Animate';
-    drawButton(ctx, layout.ANIMATE_BUTTON_RECT, animateButtonText, state.hoveredAnimateButton, state.keyframes.length < 2 && !state.isAnimating);
-
-    const pauseIsDisabled = !state.isAnimating;
-    const pauseButtonText = state.isPaused ? 'Resume' : 'Pause';
-    drawButton(ctx, layout.PAUSE_BUTTON_RECT, pauseButtonText, state.hoveredPauseButton, pauseIsDisabled);
-
-    const modeIsDisabled = state.isAnimating || state.keyframes.length < 2;
-    const modeButtonText = state.animationMode === 'loop' ? 'Loop' : 'PingPong';
-    drawButton(ctx, layout.MODE_BUTTON_RECT, modeButtonText, state.hoveredModeButton, modeIsDisabled);
-
-    const onionIsDisabled = state.isAnimating || state.activeKeyframeIndex === null;
-    drawButton(ctx, layout.ONION_BUTTON_RECT, 'Onion', state.hoveredOnionButton, onionIsDisabled, state.isOnionModeEnabled);
-
-    const exportIsDisabled = state.isAnimating || state.keyframes.length === 0;
-    drawButton(ctx, layout.EXPORT_BUTTON_RECT, 'Export', state.hoveredExportButton, exportIsDisabled);
-    
-    const importIsDisabled = state.isAnimating;
-    drawButton(ctx, layout.IMPORT_BUTTON_RECT, 'Import', state.hoveredImportButton, importIsDisabled);
 
     if (state.keyframes.length > 0) {
         drawTimeline(

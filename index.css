@@ -11,10 +11,10 @@ body {
 }
 
 #app-container {
+    position: relative; /* For positioning child overlays */
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
 }
 
 canvas#game-canvas {
@@ -23,12 +23,54 @@ canvas#game-canvas {
     cursor: default;
 }
 
-#controls-container {
+#controls-panel {
+    position: absolute;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    gap: 8px;
+    top: 555px; /* Aligns with where canvas buttons were */
+    left: 0;
+    width: 800px; /* Match canvas width */
+    height: 35px;
+}
+
+#controls-panel button {
+    background-color: #c78f3d;
+    color: #121212;
+    border: none;
+    width: auto;
+    height: 100%;
+    border-radius: 4px;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#controls-panel button:hover:not(:disabled) {
+    background-color: #ec9b2e;
+}
+
+#controls-panel button.active {
+    background-color: #f0ad4e;
+    color: #FFFFFF;
+}
+
+#controls-panel button:disabled {
+    background-color: #555;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.duration-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     color: #FFF;
     font-size: 16px;
+    margin-left: 16px;
 }
 
 #duration-input {
@@ -39,6 +81,7 @@ canvas#game-canvas {
     border-radius: 4px;
     width: 60px;
     font-size: 16px;
+    box-sizing: border-box; /* Ensures padding is included in width */
 }
 
 #duration-input:disabled {

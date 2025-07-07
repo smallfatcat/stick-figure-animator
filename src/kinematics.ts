@@ -1,6 +1,17 @@
 import { StickFigurePose, StickFigurePoints } from './types';
 
 /**
+ * A comprehensive type for the kinematic model, including hierarchy, bone lengths, and the default pose.
+ */
+export type KinematicsData = {
+    hierarchy: { [key: string]: string };
+    children: { [key: string]: string[] };
+    boneLengths: { [key: string]: number };
+    defaultPose: StickFigurePose;
+};
+
+
+/**
  * Calculates the absolute XY coordinates for each joint based on an angle-based pose.
  * This is our Forward Kinematics (FK) function.
  * @returns A StickFigurePoints object.
@@ -60,7 +71,7 @@ export function calculatePoseFromPoints(
     return pose;
 }
 
-export function createDefaultKinematics(canvasWidth: number, posingAreaHeight: number) {
+export function createDefaultKinematics(canvasWidth: number, posingAreaHeight: number): KinematicsData {
     const centerX = canvasWidth / 2;
     const centerY = posingAreaHeight / 2;
 
