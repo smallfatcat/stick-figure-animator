@@ -1,3 +1,6 @@
+Simple animation tool developed using Goggle AI Studio
+
+
 # Run and deploy your AI Studio app
 
 This contains everything you need to run your app locally.
