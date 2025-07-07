@@ -19,7 +19,7 @@ export function exportKeyframesAsJSON(keyframes: Keyframe[]) {
     }
     
     const exportData = {
-        version: "1.1.0",
+        version: "1.1.1",
         format: "stick-figure-animation",
         exportedAt: new Date().toISOString(),
         keyframes: keyframes,
@@ -107,8 +107,8 @@ export function loadKeyframesFromFile(file: File): Promise<Keyframe[]> {
                     
                     // Handle version-specific compatibility
                     const version = data.version;
-                    if (version === "1.0.0" || version === "0.0.0") {
-                        console.log("Converting from v1.0.0 to v1.1.0 format (adding neckBase joint)");
+                    if (version === "1.0.0" || version === "0.0.0" || version === "1.1.0") {
+                        console.log("Converting from older version to v1.1.1 format (adding neckBase joint)");
                     }
                     
                     if (Array.isArray(data.keyframes)) {
