@@ -1,0 +1,5 @@
+{
+  "name": "Stick Figure Animator",
+  "description": "An interactive stick figure animator. Pose a character and click the background to instantly save a new keyframe. Select a keyframe and click the 'Update' button to refine it. Features a scrollable timeline, smooth animation playback, persistent 'Onion' mode (onion skinning) for easier posing, and allows you to export or import your work to and from JSON files. All within a single integrated canvas UI.",
+  "requestFramePermissions": []
+}
