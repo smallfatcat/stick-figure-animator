@@ -1,4 +1,4 @@
-Simple animation tool developed using Goggle AI Studio
+Simple animation tool developed using Google AI Studio
 
 
 # Run and deploy your AI Studio app
