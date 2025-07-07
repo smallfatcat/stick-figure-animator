@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Stick Figure Animator</title>
+  <script type="module" crossorigin src="/stick-figure-animator/assets/index-D23Exh1d.js"></script>
+  <link rel="stylesheet" crossorigin href="/stick-figure-animator/assets/index-fO9ijr8e.css">
+</head>
+<body>
+    <div id="app-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="controls-panel">
+            <div class="controls-row">
+                <button id="animate-btn" class="icon-btn" title="Animate"></button>
+                <button id="pause-btn" class="icon-btn" title="Pause"></button>
+                <button id="insert-keyframe-btn" class="icon-btn" title="Insert Keyframe at Playhead"></button>
+                <button id="mode-btn" class="icon-btn" title="Toggle Loop/Ping-Pong"></button>
+                <div class="duration-control">
+                    <label for="duration-input" id="duration-label">Duration (s):</label>
+                    <input type="number" id="duration-input" min="0.1" step="0.1" value="5">
+                    <button id="time-mode-toggle-btn">Use Frames</button>
+                </div>
+            </div>
+            <div class="controls-row">
+                <div class="onion-control-group">
+                    <button id="onion-btn" class="icon-btn" title="Toggle Onion Skin"></button>
+                    <label for="onion-before-input">Before:</label>
+                    <input type="number" id="onion-before-input" min="0" max="10" step="1" value="5">
+                    <label for="onion-after-input">After:</label>
+                    <input type="number" id="onion-after-input" min="0" max="10" step="1" value="5">
+                </div>
+                <div class="onion-control-group">
+                    <button id="full-onion-skin-btn" class="icon-btn" title="Toggle Full Animation Onion Skin (when playing)"></button>
+                    <label for="motion-trail-step-input">Step:</label>
+                    <input type="number" id="motion-trail-step-input" min="1" max="60" step="1" value="1">
+                </div>
+                <button id="export-btn" class="icon-btn" title="Export Animation"></button>
+                <button id="import-btn" class="icon-btn" title="Import Animation"></button>
+            </div>
+        </div>
+        <input type="file" id="import-input" accept="application/json" style="display: none;" />
+    </div>
+</body>
+</html>
