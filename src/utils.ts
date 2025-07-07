@@ -10,14 +10,27 @@ export function isInside(pos: Point, rect: Rect): boolean {
 }
 
 /**
- * Creates and triggers a download for a JSON file containing the keyframes.
+ * Creates and triggers a download for a JSON file containing the keyframes with version metadata.
  */
 export function exportKeyframesAsJSON(keyframes: Keyframe[]) {
     if (keyframes.length === 0) {
         console.warn("No keyframes to export.");
         return;
     }
-    const jsonString = JSON.stringify(keyframes, null, 2);
+    
+    const exportData = {
+        version: "1.0.0",
+        format: "stick-figure-animation",
+        exportedAt: new Date().toISOString(),
+        keyframes: keyframes,
+        metadata: {
+            totalKeyframes: keyframes.length,
+            duration: keyframes.length > 1 ? keyframes[keyframes.length - 1].time - keyframes[0].time : 0,
+            hasIKSupport: true
+        }
+    };
+    
+    const jsonString = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -42,6 +55,7 @@ function ensurePoseCompatibility(pose: StickFigurePose): StickFigurePose {
 
 /**
  * Loads and validates keyframes from a user-provided file.
+ * Supports versioned format and maintains backwards compatibility.
  * Returns the parsed keyframes or throws an error.
  */
 export function loadKeyframesFromFile(file: File): Promise<Keyframe[]> {
@@ -55,38 +69,56 @@ export function loadKeyframesFromFile(file: File): Promise<Keyframe[]> {
                 }
                 const data = JSON.parse(text);
 
-                if (!Array.isArray(data)) {
-                    throw new Error("Invalid keyframe file: not an array.");
-                }
+                let keyframes: Keyframe[] = [];
 
-                if (data.length === 0) {
-                    resolve([]);
-                    return;
-                }
-
-                // Check for new format (Keyframe[]) vs old format (StickFigurePose[])
-                if (data[0].pose !== undefined && typeof data[0].time === 'number') {
-                    // New format detected
-                    const keyframes = (data as Keyframe[]).map(kf => ({
-                        ...kf,
-                        pose: ensurePoseCompatibility(kf.pose)
-                    }));
-                     // Basic validation
-                    if (keyframes.some(item => typeof item.pose?.hip?.x !== 'number' || typeof item.pose?.angles !== 'object')) {
-                         throw new Error("Invalid keyframe file format.");
+                // Check if this is a versioned format (new format)
+                if (data.version && data.format === "stick-figure-animation" && data.keyframes) {
+                    console.log(`Loading animation file version ${data.version}`);
+                    
+                    if (Array.isArray(data.keyframes)) {
+                        keyframes = (data.keyframes as Keyframe[]).map(kf => ({
+                            ...kf,
+                            pose: ensurePoseCompatibility(kf.pose)
+                        }));
+                    } else {
+                        throw new Error("Invalid versioned keyframe file: keyframes array missing.");
                     }
-                    resolve(keyframes);
-                } else if (data[0].hip !== undefined && data[0].angles !== undefined) {
-                    // Old format detected, convert it
-                    const numKeyframes = data.length;
-                    const keyframes = (data as StickFigurePose[]).map((pose, index) => ({
-                        pose: ensurePoseCompatibility(pose),
-                        time: numKeyframes <= 1 ? 0 : index / (numKeyframes - 1)
-                    }));
-                    resolve(keyframes);
+                } else if (Array.isArray(data)) {
+                    // Legacy format detection
+                    if (data.length === 0) {
+                        resolve([]);
+                        return;
+                    }
+
+                    // Check for new format (Keyframe[]) vs old format (StickFigurePose[])
+                    if (data[0].pose !== undefined && typeof data[0].time === 'number') {
+                        // New format detected (array of Keyframes)
+                        console.log("Loading legacy new format (array of Keyframes)");
+                        keyframes = (data as Keyframe[]).map(kf => ({
+                            ...kf,
+                            pose: ensurePoseCompatibility(kf.pose)
+                        }));
+                    } else if (data[0].hip !== undefined && data[0].angles !== undefined) {
+                        // Old format detected (array of StickFigurePose)
+                        console.log("Loading legacy old format (array of StickFigurePose)");
+                        const numKeyframes = data.length;
+                        keyframes = (data as StickFigurePose[]).map((pose, index) => ({
+                            pose: ensurePoseCompatibility(pose),
+                            time: numKeyframes <= 1 ? 0 : index / (numKeyframes - 1)
+                        }));
+                    } else {
+                        throw new Error("Unrecognized keyframe file format.");
+                    }
                 } else {
-                    throw new Error("Unrecognized keyframe file format.");
+                    throw new Error("Invalid keyframe file: not a valid format.");
                 }
+
+                // Basic validation
+                if (keyframes.some(item => typeof item.pose?.hip?.x !== 'number' || typeof item.pose?.angles !== 'object')) {
+                    throw new Error("Invalid keyframe file format.");
+                }
+
+                resolve(keyframes);
 
             } catch (error) {
                 console.error("Error loading keyframes:", error);
