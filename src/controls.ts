@@ -12,6 +12,10 @@ export function updateControlsState(dom: DOMElements, state: AppState) {
     dom.pauseBtn.title = state.isPaused ? 'Resume' : 'Pause';
     dom.pauseBtn.disabled = !state.isAnimating;
     
+    dom.ikModeBtn.classList.toggle('active', state.isIKModeEnabled);
+    dom.ikModeBtn.title = state.isIKModeEnabled ? 'Disable IK Mode' : 'Enable IK Mode';
+    dom.ikModeBtn.disabled = state.isAnimating;
+    
     const isAtExistingKeyframe = state.keyframes.some(kf => {
         // Use a small epsilon for floating point comparison
         return Math.abs(kf.time - state.animationProgress) < 0.0001;

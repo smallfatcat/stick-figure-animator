@@ -111,7 +111,7 @@ export function drawStickFigure(
 }
 
 
-export function drawGrabHandles(ctx: CanvasRenderingContext2D, figure: StickFigurePoints, radius: number, mousePos: Point | null): boolean {
+export function drawGrabHandles(ctx: CanvasRenderingContext2D, figure: StickFigurePoints, radius: number, mousePos: Point | null, isIKMode: boolean = false): boolean {
   if (!mousePos) return false;
 
   ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
@@ -124,6 +124,20 @@ export function drawGrabHandles(ctx: CanvasRenderingContext2D, figure: StickFigu
     const distance = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
     
     if (distance < radius) {
+      // In IK mode, only show handles for end effectors
+      if (isIKMode) {
+        const endEffectors = ['leftHand', 'rightHand', 'leftFoot', 'rightFoot', 'leftToe', 'rightToe'];
+        if (!endEffectors.includes(key)) {
+          continue;
+        }
+        // Use different color for IK mode
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.4)';
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+      } else {
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+      }
+      
       ctx.beginPath();
       ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
       ctx.fill();

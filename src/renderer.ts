@@ -68,7 +68,7 @@ export function redraw(
     drawStickFigure(ctx, currentPoints);
 
     const grabRadius = 15;
-    const isHoveringJoint = !state.isAnimating && !state.draggedMarkerIndex && drawGrabHandles(ctx, currentPoints, grabRadius, state.currentMousePos);
+    const isHoveringJoint = !state.isAnimating && !state.draggedMarkerIndex && drawGrabHandles(ctx, currentPoints, grabRadius, state.currentMousePos, state.isIKModeEnabled);
 
     drawUI(ctx, canvas.width, canvas.height, layout, state, kinematics);
     

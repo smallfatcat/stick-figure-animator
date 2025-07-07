@@ -9,6 +9,7 @@ export interface DOMElements {
     pauseBtn: HTMLButtonElement;
     insertKeyframeBtn: HTMLButtonElement;
     modeBtn: HTMLButtonElement;
+    ikModeBtn: HTMLButtonElement;
     onionBtn: HTMLButtonElement;
     fullOnionSkinBtn: HTMLButtonElement;
     motionTrailStepInput: HTMLInputElement;
@@ -28,6 +29,7 @@ export function getDOMElements(): DOMElements {
     const pauseBtn = document.getElementById('pause-btn') as HTMLButtonElement;
     const insertKeyframeBtn = document.getElementById('insert-keyframe-btn') as HTMLButtonElement;
     const modeBtn = document.getElementById('mode-btn') as HTMLButtonElement;
+    const ikModeBtn = document.getElementById('ik-mode-btn') as HTMLButtonElement;
     const onionBtn = document.getElementById('onion-btn') as HTMLButtonElement;
     const fullOnionSkinBtn = document.getElementById('full-onion-skin-btn') as HTMLButtonElement;
     const motionTrailStepInput = document.getElementById('motion-trail-step-input') as HTMLInputElement;
@@ -36,9 +38,9 @@ export function getDOMElements(): DOMElements {
     const onionBeforeInput = document.getElementById('onion-before-input') as HTMLInputElement;
     const onionAfterInput = document.getElementById('onion-after-input') as HTMLInputElement;
 
-    if (!canvas || !importInput || !durationInput || !durationLabel || !timeModeToggleBtn || !animateBtn || !pauseBtn || !insertKeyframeBtn || !modeBtn || !onionBtn || !fullOnionSkinBtn || !motionTrailStepInput || !exportBtn || !importBtn || !onionBeforeInput || !onionAfterInput) {
+    if (!canvas || !importInput || !durationInput || !durationLabel || !timeModeToggleBtn || !animateBtn || !pauseBtn || !insertKeyframeBtn || !modeBtn || !ikModeBtn || !onionBtn || !fullOnionSkinBtn || !motionTrailStepInput || !exportBtn || !importBtn || !onionBeforeInput || !onionAfterInput) {
         throw new Error("Could not find all required DOM elements.");
     }
 
-    return { canvas, importInput, durationInput, durationLabel, timeModeToggleBtn, animateBtn, pauseBtn, insertKeyframeBtn, modeBtn, onionBtn, fullOnionSkinBtn, motionTrailStepInput, exportBtn, importBtn, onionBeforeInput, onionAfterInput };
+    return { canvas, importInput, durationInput, durationLabel, timeModeToggleBtn, animateBtn, pauseBtn, insertKeyframeBtn, modeBtn, ikModeBtn, onionBtn, fullOnionSkinBtn, motionTrailStepInput, exportBtn, importBtn, onionBeforeInput, onionAfterInput };
 }

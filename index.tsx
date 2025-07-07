@@ -13,7 +13,7 @@ import { RedrawFunction } from './src/types';
 
 function main() {
     const dom = getDOMElements();
-    const { canvas, insertKeyframeBtn, onionBtn, exportBtn, importBtn, fullOnionSkinBtn } = dom;
+    const { canvas, insertKeyframeBtn, onionBtn, exportBtn, importBtn, fullOnionSkinBtn, ikModeBtn } = dom;
 
     canvas.width = 800;
     canvas.height = 720;
@@ -41,6 +41,7 @@ function main() {
     fullOnionSkinBtn.innerHTML = icons.motionTrail;
     exportBtn.innerHTML = icons.export;
     importBtn.innerHTML = icons.import;
+    ikModeBtn.innerHTML = icons.ik;
 
     setupEventHandlers(dom, state, layout, kinematics, updateUI, redrawCanvas);
     

@@ -47,6 +47,10 @@ export interface AppState {
   animationTotalDuration: number;
   animationProgress: number;
   timeDisplayMode: 'seconds' | 'frames';
+  
+  // IK Mode
+  isIKModeEnabled: boolean;
+  draggedEndEffector: keyof StickFigurePoints | null;
 }
 
 export function createAppState(kinematics: KinematicsData, layout: Layout): AppState {
@@ -89,5 +93,7 @@ export function createAppState(kinematics: KinematicsData, layout: Layout): AppS
         animationTotalDuration: 5000,
         animationProgress: 0,
         timeDisplayMode: 'seconds',
+        isIKModeEnabled: false,
+        draggedEndEffector: null,
     };
 }

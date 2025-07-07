@@ -8,6 +8,7 @@ import { autoSaveCurrentPoseIfActive, addKeyframe, deleteKeyframe, insertKeyfram
 import { getMousePos, isInside, exportKeyframesAsJSON, loadKeyframesFromFile } from './utils';
 import { Rect, StickFigurePoints, RedrawFunction } from './types';
 import { updatePoseForAnimationProgress } from './animation';
+import { solveIKForEndEffector, isEndEffector } from './inverseKinematics';
 
 export function setupEventHandlers(
     dom: DOMElements, 
@@ -17,7 +18,7 @@ export function setupEventHandlers(
     updateUI: RedrawFunction,
     redrawCanvas: RedrawFunction
 ) {
-    const { canvas, animateBtn, pauseBtn, modeBtn, onionBtn, exportBtn, importBtn, importInput, durationInput, onionBeforeInput, onionAfterInput, insertKeyframeBtn, timeModeToggleBtn, fullOnionSkinBtn, motionTrailStepInput } = dom;
+    const { canvas, animateBtn, pauseBtn, modeBtn, ikModeBtn, onionBtn, exportBtn, importBtn, importInput, durationInput, onionBeforeInput, onionAfterInput, insertKeyframeBtn, timeModeToggleBtn, fullOnionSkinBtn, motionTrailStepInput } = dom;
     const { defaultPose, hierarchy, boneLengths, children } = kinematics;
     const grabRadius = 15;
     const GUIDE_GRAB_BUFFER = 10;
@@ -71,6 +72,13 @@ export function setupEventHandlers(
     modeBtn.addEventListener('click', () => {
         if (state.keyframes.length < 2) return;
         state.animationMode = state.animationMode === 'loop' ? 'ping-pong' : 'loop';
+        updateUI();
+    });
+
+    ikModeBtn.addEventListener('click', () => {
+        if (state.isAnimating) return;
+        state.isIKModeEnabled = !state.isIKModeEnabled;
+        state.draggedEndEffector = null; // Reset any active IK dragging
         updateUI();
     });
 
@@ -263,7 +271,14 @@ export function setupEventHandlers(
                 closestPoint = pointKey;
             }
         }
+        
+        // In IK mode, only allow dragging end effectors
+        if (state.isIKModeEnabled && closestPoint && !isEndEffector(closestPoint)) {
+            closestPoint = null;
+        }
+        
         state.draggedPointKey = closestPoint;
+        state.draggedEndEffector = state.isIKModeEnabled && closestPoint && isEndEffector(closestPoint) ? closestPoint : null;
 
         if (!state.draggedPointKey && mousePos.y < layout.POSING_AREA_HEIGHT) {
             addKeyframe(state, layout);
@@ -394,7 +409,13 @@ export function setupEventHandlers(
         if (state.draggedPointKey) {
             mousePos.y = Math.min(mousePos.y, layout.POSING_AREA_HEIGHT - 2);
 
-            if (state.draggedPointKey === 'hip') {
+            if (state.isIKModeEnabled && state.draggedEndEffector) {
+                // Use IK to solve for the target position
+                const newPose = solveIKForEndEffector(mousePos, state.draggedEndEffector, state.stickFigurePose, kinematics);
+                if (newPose) {
+                    state.stickFigurePose = newPose;
+                }
+            } else if (state.draggedPointKey === 'hip') {
                 state.stickFigurePose.hip = mousePos;
             } else {
                 const parentKey = hierarchy[state.draggedPointKey as keyof typeof hierarchy]!;
@@ -433,6 +454,7 @@ export function setupEventHandlers(
 
         // Reset all drag states
         state.draggedPointKey = null;
+        state.draggedEndEffector = null;
         state.isDraggingGround = false;
         state.isDraggingVerticalGuide = false;
         state.draggedMarkerIndex = null;
@@ -445,6 +467,7 @@ export function setupEventHandlers(
     canvas.addEventListener('mouseleave', () => {
         // Reset all drag states
         state.draggedPointKey = null;
+        state.draggedEndEffector = null;
         state.isDraggingGround = false;
         state.isDraggingVerticalGuide = false;
         state.draggedMarkerIndex = null;

@@ -21,5 +21,6 @@ export const icons = {
     onion: svg('<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12c-2.48 0-4.5-2.02-4.5-4.5S9.52 7.5 12 7.5s4.5 2.02 4.5 4.5-2.02 4.5-4.5 4.5zm0-7C10.62 9.5 9.5 10.62 9.5 12s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S13.38 9.5 12 9.5z"/>'),
     export: svg('<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>'),
     import: svg('<path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>'),
-    motionTrail: svg('<path d="M4 6v12h2V6H4zm5 0v12h2V6H9zm5 0v12h2V6h-2z"/>')
+    motionTrail: svg('<path d="M4 6v12h2V6H4zm5 0v12h2V6H9zm5 0v12h2V6h-2z"/>'),
+    ik: svg('<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>')
 };
