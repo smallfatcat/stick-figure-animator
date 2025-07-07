@@ -85,6 +85,9 @@ export function addKeyframe(state: AppState, layout: any) {
 export function deleteKeyframe(state: AppState, indexToDelete: number, defaultPose: StickFigurePose, layout: any) {
     autoSaveCurrentPoseIfActive(state);
 
+    const wasLastChronologicalKeyframe = indexToDelete === state.keyframes.length - 1;
+    const oldDuration = state.animationTotalDuration;
+
     if (state.activeKeyframeIndex === indexToDelete) {
         state.activeKeyframeIndex = null;
         state.stickFigurePose = JSON.parse(JSON.stringify(defaultPose));
@@ -92,14 +95,41 @@ export function deleteKeyframe(state: AppState, indexToDelete: number, defaultPo
         state.isOnionModeEnabled = false;
     }
 
+    // 1. Remove the keyframe from the array
     state.keyframes.splice(indexToDelete, 1);
 
+    // 2. Adjust active keyframe index if it was positioned after the deleted one
     if (state.activeKeyframeIndex !== null && state.activeKeyframeIndex > indexToDelete) {
         state.activeKeyframeIndex--;
     }
 
-    redistributeKeyframeTimes(state.keyframes);
-    
+    // 3. Adjust timing and duration
+    if (state.keyframes.length === 0) {
+        // No keyframes left, reset duration to default
+        state.animationTotalDuration = 5000;
+    } else if (state.keyframes.length === 1) {
+        // Only one keyframe left, its time must be 0
+        state.keyframes[0].time = 0;
+    } else if (wasLastChronologicalKeyframe) {
+        // We deleted the last keyframe, so the animation's end-point has changed.
+        // We must adjust the duration and re-normalize the times of remaining keyframes.
+        const newLastKeyframe = state.keyframes[state.keyframes.length - 1];
+        const newDuration = newLastKeyframe.time * oldDuration;
+
+        if (newDuration > 0 && oldDuration > 0) {
+            state.animationTotalDuration = newDuration;
+            // Re-normalize all remaining keyframes based on the new duration.
+            for (const kf of state.keyframes) {
+                kf.time = (kf.time * oldDuration) / newDuration;
+            }
+        } else {
+            // This edge case happens if the new last frame was at time=0.
+            // It implies all remaining frames are at time=0. Just ensure it.
+            state.keyframes.forEach(kf => kf.time = 0);
+        }
+    }
+    // If a middle keyframe was deleted, we do nothing to times, preserving their absolute positions.
+
     state.hoveredDeleteIconIndex = null;
     state.scrollOffset = Math.max(0, Math.min(state.scrollOffset, state.keyframes.length - layout.VISIBLE_THUMBNAILS));
 }
