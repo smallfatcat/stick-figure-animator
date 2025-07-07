@@ -18,7 +18,7 @@ export type KinematicsData = {
  */
 export function calculatePointsFromPose(
     pose: StickFigurePose,
-    hierarchy: { [key: string]: string },
+    _hierarchy: { [key: string]: string },
     boneLengths: { [key: string]: number },
     children: { [key: string]: string[] }
 ): StickFigurePoints {

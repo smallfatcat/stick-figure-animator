@@ -316,7 +316,7 @@ export type Layout = ReturnType<typeof createLayout>;
 export function drawUI(
     ctx: CanvasRenderingContext2D,
     canvasWidth: number,
-    canvasHeight: number,
+    _canvasHeight: number,
     layout: Layout,
     state: AppState,
     kinematics: KinematicsData

@@ -1,6 +1,6 @@
 
 import { AppState } from './state';
-import { Layout, drawUI, getTimelineMarkerRect } from './ui';
+import { Layout, drawUI } from './ui';
 import { KinematicsData, calculatePointsFromPose } from './kinematics';
 import { drawGuides, drawStickFigure, drawGrabHandles } from './drawing';
 import { DOMElements } from './dom';
@@ -11,7 +11,7 @@ export function redraw(
     state: AppState,
     layout: Layout,
     kinematics: KinematicsData,
-    domElements: DOMElements
+    _domElements: DOMElements
 ) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 

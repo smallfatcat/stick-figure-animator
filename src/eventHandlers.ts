@@ -6,7 +6,7 @@ import { KinematicsData, calculatePointsFromPose } from './kinematics';
 import { startAnimation, stopAnimation, pauseAnimation, resumeAnimation } from './animationLoop';
 import { autoSaveCurrentPoseIfActive, addKeyframe, deleteKeyframe, insertKeyframeAtTime, redistributeKeyframeTimes } from './keyframeManager';
 import { getMousePos, isInside, exportKeyframesAsJSON, loadKeyframesFromFile } from './utils';
-import { Rect, StickFigurePoints, Keyframe, RedrawFunction } from './types';
+import { Rect, StickFigurePoints, RedrawFunction } from './types';
 import { updatePoseForAnimationProgress } from './animation';
 
 export function setupEventHandlers(
