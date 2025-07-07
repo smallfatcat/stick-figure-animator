@@ -77,7 +77,8 @@ export function createDefaultKinematics(canvasWidth: number, posingAreaHeight: n
 
     const defaultPoints: StickFigurePoints = {
         head:      { x: centerX, y: centerY - 80 },
-        neck:      { x: centerX, y: centerY - 40 },
+        neck:      { x: centerX, y: centerY - 60 },
+        neckBase:  { x: centerX, y: centerY - 40 },
         hip:       { x: centerX, y: centerY + 20 },
         leftElbow: { x: centerX - 30, y: centerY - 20 },
         leftHand:  { x: centerX - 60, y: centerY + 10 },
@@ -92,8 +93,8 @@ export function createDefaultKinematics(canvasWidth: number, posingAreaHeight: n
     };
 
     const hierarchy: { [key: string]: string } = {
-        neck: 'hip', head: 'neck',
-        leftElbow: 'neck', rightElbow: 'neck',
+        neckBase: 'hip', neck: 'neckBase', head: 'neck',
+        leftElbow: 'neckBase', rightElbow: 'neckBase',
         leftHand: 'leftElbow', rightHand: 'rightElbow',
         leftKnee: 'hip', rightKnee: 'hip',
         leftFoot: 'leftKnee', rightFoot: 'rightKnee',

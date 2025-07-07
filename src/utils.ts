@@ -19,7 +19,7 @@ export function exportKeyframesAsJSON(keyframes: Keyframe[]) {
     }
     
     const exportData = {
-        version: "1.0.0",
+        version: "1.1.0",
         format: "stick-figure-animation",
         exportedAt: new Date().toISOString(),
         keyframes: keyframes,
@@ -44,12 +44,42 @@ export function exportKeyframesAsJSON(keyframes: Keyframe[]) {
 
 
 function ensurePoseCompatibility(pose: StickFigurePose): StickFigurePose {
-    if (pose.angles && pose.angles.leftToe === undefined) {
-        pose.angles.leftToe = Math.PI; // Default to horizontal pointing left
+    // Handle conversion from older versions that only had 'neck' to new 'neckBase' + 'neck' structure
+    if (pose.angles.neck !== undefined && pose.angles.neckBase === undefined) {
+        // Convert old neck angle to neckBase and set neck to default
+        pose.angles.neckBase = pose.angles.neck;
+        pose.angles.neck = - Math.PI / 2; // Default neck angle pointing straight up
     }
-    if (pose.angles && pose.angles.rightToe === undefined) {
-        pose.angles.rightToe = 0; // Default to horizontal pointing right
+    
+    // Ensure all required angles exist with sensible defaults
+    const requiredAngles = {
+        // New neck structure (v1.1.0+)
+        neckBase: Math.PI / 2, // Pointing straight up
+        neck: Math.PI / 2,     // Pointing straight up
+        head: Math.PI / 2,     // Pointing straight up
+        
+        // Arms
+        leftElbow: -Math.PI / 4,  // Slight bend
+        rightElbow: Math.PI / 4,  // Slight bend
+        leftHand: -Math.PI / 6,   // Slight bend
+        rightHand: Math.PI / 6,   // Slight bend
+        
+        // Legs
+        leftKnee: Math.PI / 6,    // Slight bend
+        rightKnee: Math.PI / 6,   // Slight bend
+        leftFoot: 0,              // Horizontal
+        rightFoot: 0,             // Horizontal
+        leftToe: Math.PI,         // Pointing left
+        rightToe: 0               // Pointing right
+    };
+    
+    // Add missing angles with defaults
+    for (const [angleName, defaultValue] of Object.entries(requiredAngles)) {
+        if (pose.angles[angleName] === undefined) {
+            pose.angles[angleName] = defaultValue;
+        }
     }
+    
     return pose;
 }
 
@@ -74,6 +104,12 @@ export function loadKeyframesFromFile(file: File): Promise<Keyframe[]> {
                 // Check if this is a versioned format (new format)
                 if (data.version && data.format === "stick-figure-animation" && data.keyframes) {
                     console.log(`Loading animation file version ${data.version}`);
+                    
+                    // Handle version-specific compatibility
+                    const version = data.version;
+                    if (version === "1.0.0" || version === "0.0.0") {
+                        console.log("Converting from v1.0.0 to v1.1.0 format (adding neckBase joint)");
+                    }
                     
                     if (Array.isArray(data.keyframes)) {
                         keyframes = (data.keyframes as Keyframe[]).map(kf => ({

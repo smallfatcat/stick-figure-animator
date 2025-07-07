@@ -66,17 +66,17 @@ export function drawStickFigure(
 
     // Torso
     ctx.beginPath();
-    ctx.moveTo(figure.head.x, figure.head.y + 20); // visual offset
-    ctx.lineTo(figure.neck.x, figure.neck.y);
+    ctx.moveTo(figure.neck.x, figure.neck.y);
+    ctx.lineTo(figure.neckBase.x, figure.neckBase.y);
     ctx.lineTo(figure.hip.x, figure.hip.y);
     ctx.stroke();
 
     // Arms
     ctx.beginPath();
-    ctx.moveTo(figure.neck.x, figure.neck.y);
+    ctx.moveTo(figure.neckBase.x, figure.neckBase.y);
     ctx.lineTo(figure.leftElbow.x, figure.leftElbow.y);
     ctx.lineTo(figure.leftHand.x, figure.leftHand.y);
-    ctx.moveTo(figure.neck.x, figure.neck.y);
+    ctx.moveTo(figure.neckBase.x, figure.neckBase.y);
     ctx.lineTo(figure.rightElbow.x, figure.rightElbow.y);
     ctx.lineTo(figure.rightHand.x, figure.rightHand.y);
     ctx.stroke();

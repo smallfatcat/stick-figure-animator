@@ -57,8 +57,8 @@ export function solveIKForEndEffector(
     
     // Define IK chains for each end effector
     const ikChains: { [key: string]: { base: keyof StickFigurePoints; joints: string[] } } = {
-        leftHand: { base: 'neck', joints: ['leftElbow', 'leftHand'] },
-        rightHand: { base: 'neck', joints: ['rightElbow', 'rightHand'] },
+        leftHand: { base: 'neckBase', joints: ['leftElbow', 'leftHand'] },
+        rightHand: { base: 'neckBase', joints: ['rightElbow', 'rightHand'] },
         leftFoot: { base: 'hip', joints: ['leftKnee', 'leftFoot'] },
         rightFoot: { base: 'hip', joints: ['rightKnee', 'rightFoot'] },
         leftToe: { base: 'leftFoot', joints: ['leftToe'] },
@@ -122,8 +122,8 @@ export function isEndEffector(pointKey: keyof StickFigurePoints): boolean {
  */
 export function getIKChain(endEffector: keyof StickFigurePoints): { base: string; joints: string[] } | null {
     const ikChains: { [key: string]: { base: string; joints: string[] } } = {
-        leftHand: { base: 'neck', joints: ['leftElbow', 'leftHand'] },
-        rightHand: { base: 'neck', joints: ['rightElbow', 'rightHand'] },
+        leftHand: { base: 'neckBase', joints: ['leftElbow', 'leftHand'] },
+        rightHand: { base: 'neckBase', joints: ['rightElbow', 'rightHand'] },
         leftFoot: { base: 'hip', joints: ['leftKnee', 'leftFoot'] },
         rightFoot: { base: 'hip', joints: ['rightKnee', 'rightFoot'] },
         leftToe: { base: 'leftFoot', joints: ['leftToe'] },

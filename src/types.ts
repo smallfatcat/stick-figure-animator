@@ -4,7 +4,7 @@ export type Rect = { x: number; y: number; width: number; height: number; };
 
 // The raw XY coordinates of each joint, calculated from a pose for drawing.
 export type StickFigurePoints = {
-  head: Point; neck: Point; hip: Point;
+  head: Point; neck: Point; neckBase: Point; hip: Point;
   leftHand: Point; leftElbow: Point;
   rightHand: Point; rightElbow: Point;
   leftFoot: Point; leftKnee: Point; leftToe: Point;

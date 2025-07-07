@@ -1,7 +1,7 @@
 {
   "name": "stick-figure-animator-(alpha)",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
   "type": "module",
   "homepage": "https://smallfatcat.github.io/stick-figure-animator/",
   "scripts": {
