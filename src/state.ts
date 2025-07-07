@@ -14,6 +14,8 @@ export interface AppState {
   isDraggingGround: boolean;
   isDraggingVerticalGuide: boolean;
   draggedMarkerIndex: number | null;
+  isDraggingPlayhead: boolean;
+  draggedThumbnailIndex: number | null; // For D&D reordering
 
   currentMousePos: Point | null;
   
@@ -24,9 +26,13 @@ export interface AppState {
   hoveredGround: boolean;
   hoveredVerticalGuide: boolean;
   hoveredMarkerIndex: number | null;
+  hoveredPlayhead: boolean;
   scrollOffset: number;
+  dropTargetIndex: number | null; // For D&D reordering
   
   isOnionModeEnabled: boolean;
+  onionSkinBefore: number;
+  onionSkinAfter: number;
 
   isAnimating: boolean;
   isPaused: boolean;
@@ -35,7 +41,7 @@ export interface AppState {
   animationStartTime: number | null;
   timeElapsedBeforePause: number;
   animationTotalDuration: number;
-  animationProgress: number | null;
+  animationProgress: number;
 }
 
 export function createAppState(kinematics: KinematicsData, layout: Layout): AppState {
@@ -50,6 +56,8 @@ export function createAppState(kinematics: KinematicsData, layout: Layout): AppS
         isDraggingGround: false,
         isDraggingVerticalGuide: false,
         draggedMarkerIndex: null,
+        isDraggingPlayhead: false,
+        draggedThumbnailIndex: null,
         currentMousePos: null,
         hoveredThumbnailIndex: null,
         hoveredDeleteIconIndex: null,
@@ -58,8 +66,12 @@ export function createAppState(kinematics: KinematicsData, layout: Layout): AppS
         hoveredGround: false,
         hoveredVerticalGuide: false,
         hoveredMarkerIndex: null,
+        hoveredPlayhead: false,
         scrollOffset: 0,
+        dropTargetIndex: null,
         isOnionModeEnabled: false,
+        onionSkinBefore: 5,
+        onionSkinAfter: 5,
         isAnimating: false,
         isPaused: false,
         animationMode: 'loop',
@@ -67,6 +79,6 @@ export function createAppState(kinematics: KinematicsData, layout: Layout): AppS
         animationStartTime: null,
         timeElapsedBeforePause: 0,
         animationTotalDuration: 5000,
-        animationProgress: null,
+        animationProgress: 0,
     };
 }

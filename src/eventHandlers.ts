@@ -3,9 +3,10 @@ import { DOMElements } from './dom';
 import { Layout, getDeleteButtonRect, getTimelineMarkerRect } from './ui';
 import { KinematicsData, calculatePointsFromPose } from './kinematics';
 import { startAnimation, stopAnimation, pauseAnimation, resumeAnimation } from './animationLoop';
-import { autoSaveCurrentPoseIfActive, redistributeKeyframeTimes, addKeyframe, deleteKeyframe } from './keyframeManager';
+import { autoSaveCurrentPoseIfActive, addKeyframe, deleteKeyframe, insertKeyframeAtTime, redistributeKeyframeTimes } from './keyframeManager';
 import { getMousePos, isInside, exportKeyframesAsJSON, loadKeyframesFromFile } from './utils';
 import { Rect, StickFigurePoints, Keyframe } from './types';
+import { updatePoseForAnimationProgress } from './animation';
 
 type RedrawFunction = () => void;
 
@@ -16,7 +17,7 @@ export function setupEventHandlers(
     kinematics: KinematicsData,
     redraw: RedrawFunction
 ) {
-    const { canvas, animateBtn, pauseBtn, modeBtn, onionBtn, exportBtn, importBtn, importInput, durationInput } = dom;
+    const { canvas, animateBtn, pauseBtn, modeBtn, onionBtn, exportBtn, importBtn, importInput, durationInput, onionBeforeInput, onionAfterInput, insertKeyframeBtn } = dom;
     const { defaultPose, hierarchy, boneLengths, children } = kinematics;
     const grabRadius = 15;
     const GUIDE_GRAB_BUFFER = 10;
@@ -39,6 +40,34 @@ export function setupEventHandlers(
         }
     });
 
+    insertKeyframeBtn.addEventListener('click', () => {
+        if (insertKeyframeBtn.disabled) return;
+
+        // The current state.stickFigurePose is the interpolated one we want to save.
+        // insertKeyframeAtTime creates a deep copy of the pose.
+        const newIndex = insertKeyframeAtTime(state, state.stickFigurePose, state.animationProgress);
+
+        // Manually stop the animation state machine without resetting the main pose or active index.
+        if (state.animationRequestId) {
+            cancelAnimationFrame(state.animationRequestId);
+        }
+        state.animationRequestId = null;
+        state.isAnimating = false;
+        state.isPaused = false;
+        
+        // Set the new keyframe as the active one. The stickFigurePose is already correct.
+        state.activeKeyframeIndex = newIndex;
+
+        // Ensure thumbnail is visible in the scrollable timeline.
+        if (state.activeKeyframeIndex < state.scrollOffset) {
+            state.scrollOffset = state.activeKeyframeIndex;
+        } else if (state.activeKeyframeIndex >= state.scrollOffset + layout.VISIBLE_THUMBNAILS) {
+            state.scrollOffset = state.activeKeyframeIndex - layout.VISIBLE_THUMBNAILS + 1;
+        }
+
+        redraw();
+    });
+
     modeBtn.addEventListener('click', () => {
         if (state.isAnimating || state.keyframes.length < 2) return;
         state.animationMode = state.animationMode === 'loop' ? 'ping-pong' : 'loop';
@@ -49,6 +78,26 @@ export function setupEventHandlers(
         if (state.isAnimating || state.activeKeyframeIndex === null) return;
         state.isOnionModeEnabled = !state.isOnionModeEnabled;
         redraw();
+    });
+
+    onionBeforeInput.addEventListener('change', () => {
+        const value = parseInt(onionBeforeInput.value, 10);
+        if (!isNaN(value) && value >= 0) {
+            state.onionSkinBefore = value;
+            if (state.isOnionModeEnabled) redraw();
+        } else {
+            onionBeforeInput.value = state.onionSkinBefore.toString();
+        }
+    });
+
+    onionAfterInput.addEventListener('change', () => {
+        const value = parseInt(onionAfterInput.value, 10);
+        if (!isNaN(value) && value >= 0) {
+            state.onionSkinAfter = value;
+            if (state.isOnionModeEnabled) redraw();
+        } else {
+            onionAfterInput.value = state.onionSkinAfter.toString();
+        }
     });
 
     exportBtn.addEventListener('click', () => {
@@ -69,9 +118,18 @@ export function setupEventHandlers(
                 autoSaveCurrentPoseIfActive(state);
                 const loadedKfs = await loadKeyframesFromFile(file);
                 state.keyframes = loadedKfs;
-                state.activeKeyframeIndex = state.keyframes.length > 0 ? 0 : null;
                 state.scrollOffset = 0;
-                state.stickFigurePose = state.keyframes.length > 0 ? JSON.parse(JSON.stringify(state.keyframes[0].pose)) : JSON.parse(JSON.stringify(defaultPose));
+                
+                if (state.keyframes.length > 0) {
+                    state.activeKeyframeIndex = 0;
+                    state.stickFigurePose = JSON.parse(JSON.stringify(state.keyframes[0].pose));
+                    state.animationProgress = state.keyframes[0].time;
+                } else {
+                    state.activeKeyframeIndex = null;
+                    state.stickFigurePose = JSON.parse(JSON.stringify(defaultPose));
+                    state.animationProgress = 0;
+                }
+                
                 state.isOnionModeEnabled = false;
                 redraw();
             } catch (error) {
@@ -93,13 +151,21 @@ export function setupEventHandlers(
 
     canvas.addEventListener('mousedown', (e) => {
         const mousePos = getMousePos(canvas, e);
-        if (state.isAnimating) return;
+        if (state.isAnimating && !state.isPaused) return;
+
+        if (state.hoveredPlayhead) {
+            state.isDraggingPlayhead = true;
+            state.activeKeyframeIndex = null; // Deselect keyframe while scrubbing
+            redraw();
+            return;
+        }
 
         if (state.hoveredMarkerIndex !== null) {
             if (state.activeKeyframeIndex !== state.hoveredMarkerIndex) {
                 autoSaveCurrentPoseIfActive(state);
                 state.activeKeyframeIndex = state.hoveredMarkerIndex;
                 state.stickFigurePose = JSON.parse(JSON.stringify(state.keyframes[state.hoveredMarkerIndex].pose));
+                state.animationProgress = state.keyframes[state.hoveredMarkerIndex].time;
 
                 if (state.activeKeyframeIndex < state.scrollOffset) {
                     state.scrollOffset = state.activeKeyframeIndex;
@@ -147,8 +213,11 @@ export function setupEventHandlers(
                      autoSaveCurrentPoseIfActive(state);
                      state.activeKeyframeIndex = clickedIndex;
                      state.stickFigurePose = JSON.parse(JSON.stringify(state.keyframes[clickedIndex].pose));
-                     redraw();
+                     state.animationProgress = state.keyframes[clickedIndex].time;
                 }
+                // Start dragging the thumbnail
+                state.draggedThumbnailIndex = clickedIndex;
+                redraw();
                 return;
             }
         }
@@ -176,6 +245,42 @@ export function setupEventHandlers(
         const mousePos = getMousePos(canvas, e);
         state.currentMousePos = mousePos;
 
+        if (state.draggedThumbnailIndex !== null) {
+            state.dropTargetIndex = null; // Default to no target
+            for (let i = 0; i < layout.THUMBNAIL_RECTS.length; i++) {
+                const rect = layout.THUMBNAIL_RECTS[i];
+                const actualIndex = state.scrollOffset + i;
+
+                if (actualIndex >= state.keyframes.length) continue;
+                
+                if (isInside(mousePos, rect)) {
+                    if (actualIndex === state.draggedThumbnailIndex) {
+                        state.dropTargetIndex = null;
+                    } else {
+                        const midX = rect.x + rect.width / 2;
+                        state.dropTargetIndex = (mousePos.x < midX) ? actualIndex : actualIndex + 1;
+                    }
+                    break;
+                }
+            }
+            redraw();
+            return;
+        }
+
+        if (state.isDraggingPlayhead) {
+            const timelineRect = layout.TIMELINE_RECT;
+            let newProgress = (mousePos.x - timelineRect.x) / timelineRect.width;
+            newProgress = Math.max(0, Math.min(1, newProgress));
+
+            state.animationProgress = newProgress;
+            // Update elapsed time so resume works from the new spot
+            state.timeElapsedBeforePause = state.animationProgress * state.animationTotalDuration;
+            
+            updatePoseForAnimationProgress(state);
+            redraw();
+            return;
+        }
+
         if (state.draggedMarkerIndex !== null) {
             const timelineRect = layout.TIMELINE_RECT;
             let newTime = (mousePos.x - timelineRect.x) / timelineRect.width;
@@ -190,12 +295,12 @@ export function setupEventHandlers(
             return;
         }
 
-        if (state.isDraggingGround && !state.isAnimating) {
+        if (state.isDraggingGround) {
             state.groundY = Math.max(0, Math.min(mousePos.y, layout.POSING_AREA_HEIGHT));
             redraw();
             return;
         }
-        if (state.isDraggingVerticalGuide && !state.isAnimating) {
+        if (state.isDraggingVerticalGuide) {
             state.verticalGuideX = Math.max(0, Math.min(mousePos.x, canvas.width));
             redraw();
             return;
@@ -209,8 +314,18 @@ export function setupEventHandlers(
         state.hoveredMarkerIndex = null;
         state.hoveredGround = false;
         state.hoveredVerticalGuide = false;
+        state.hoveredPlayhead = false;
 
-        if (!state.isAnimating) {
+        if (!state.isAnimating || state.isPaused) {
+            if (state.keyframes.length > 0) {
+                const playheadX = layout.TIMELINE_RECT.x + state.animationProgress * layout.TIMELINE_RECT.width;
+                // Increase grab area a bit for easier interaction
+                const playheadGrabArea = { x: playheadX - 6, y: layout.TIMELINE_RECT.y - 6, width: 12, height: layout.TIMELINE_RECT.height + 12 };
+                if (isInside(mousePos, playheadGrabArea)) {
+                    state.hoveredPlayhead = true;
+                }
+            }
+
             state.hoveredScrollLeft = isInside(mousePos, layout.SCROLL_LEFT_BUTTON_RECT);
             state.hoveredScrollRight = isInside(mousePos, layout.SCROLL_RIGHT_BUTTON_RECT);
 
@@ -246,7 +361,7 @@ export function setupEventHandlers(
             }
         }
 
-        if (state.draggedPointKey && !state.isAnimating) {
+        if (state.draggedPointKey) {
             mousePos.y = Math.min(mousePos.y, layout.POSING_AREA_HEIGHT - 2);
 
             if (state.draggedPointKey === 'hip') {
@@ -264,19 +379,51 @@ export function setupEventHandlers(
     });
 
     canvas.addEventListener('mouseup', () => { 
+        // Handle thumbnail drop
+        if (state.draggedThumbnailIndex !== null && state.dropTargetIndex !== null) {
+            const sourceIndex = state.draggedThumbnailIndex;
+            let insertIndex = state.dropTargetIndex;
+
+            const [draggedKeyframe] = state.keyframes.splice(sourceIndex, 1);
+
+            // Adjust index because we removed an element
+            if (sourceIndex < insertIndex) {
+                insertIndex--;
+            }
+
+            state.keyframes.splice(insertIndex, 0, draggedKeyframe);
+
+            // Update state to reflect the reorder
+            state.activeKeyframeIndex = insertIndex;
+            redistributeKeyframeTimes(state.keyframes);
+            if (state.keyframes[insertIndex]) {
+                 state.animationProgress = state.keyframes[insertIndex].time;
+            }
+        }
+
+        // Reset all drag states
         state.draggedPointKey = null;
         state.isDraggingGround = false;
         state.isDraggingVerticalGuide = false;
         state.draggedMarkerIndex = null;
+        state.isDraggingPlayhead = false;
+        state.draggedThumbnailIndex = null;
+        state.dropTargetIndex = null;
+        redraw();
     });
 
     canvas.addEventListener('mouseleave', () => {
+        // Reset all drag states
         state.draggedPointKey = null;
         state.isDraggingGround = false;
         state.isDraggingVerticalGuide = false;
         state.draggedMarkerIndex = null;
+        state.isDraggingPlayhead = false;
+        state.draggedThumbnailIndex = null;
+        state.dropTargetIndex = null;
         state.currentMousePos = null;
-        if(!state.isAnimating){
+
+        if(!state.isAnimating || state.isPaused){
             state.hoveredScrollLeft = false;
             state.hoveredScrollRight = false;
             state.hoveredThumbnailIndex = null;
@@ -284,6 +431,7 @@ export function setupEventHandlers(
             state.hoveredGround = false;
             state.hoveredVerticalGuide = false;
             state.hoveredMarkerIndex = null;
+            state.hoveredPlayhead = false;
         }
         redraw();
     });
@@ -309,6 +457,7 @@ export function setupEventHandlers(
 
                 state.activeKeyframeIndex = nextIndex;
                 state.stickFigurePose = JSON.parse(JSON.stringify(state.keyframes[state.activeKeyframeIndex].pose));
+                state.animationProgress = state.keyframes[state.activeKeyframeIndex].time;
 
                 if (state.activeKeyframeIndex < state.scrollOffset) {
                     state.scrollOffset = state.activeKeyframeIndex;

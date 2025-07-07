@@ -32,6 +32,8 @@ export function addKeyframe(state: AppState, layout: any) {
     state.activeKeyframeIndex = insertIndex;
     
     redistributeKeyframeTimes(state.keyframes);
+    
+    state.animationProgress = state.keyframes[insertIndex].time;
 
     state.scrollOffset = Math.max(0, state.keyframes.length - layout.VISIBLE_THUMBNAILS);
 }
@@ -42,6 +44,7 @@ export function deleteKeyframe(state: AppState, indexToDelete: number, defaultPo
     if (state.activeKeyframeIndex === indexToDelete) {
         state.activeKeyframeIndex = null;
         state.stickFigurePose = JSON.parse(JSON.stringify(defaultPose));
+        state.animationProgress = 0;
         state.isOnionModeEnabled = false;
     }
 
@@ -55,4 +58,16 @@ export function deleteKeyframe(state: AppState, indexToDelete: number, defaultPo
     
     state.hoveredDeleteIconIndex = null;
     state.scrollOffset = Math.max(0, Math.min(state.scrollOffset, state.keyframes.length - layout.VISIBLE_THUMBNAILS));
+}
+
+export function insertKeyframeAtTime(state: AppState, pose: StickFigurePose, time: number): number {
+    const newKeyframe: Keyframe = {
+        pose: JSON.parse(JSON.stringify(pose)),
+        time: time,
+    };
+
+    state.keyframes.push(newKeyframe);
+    state.keyframes.sort((a, b) => a.time - b.time);
+
+    return state.keyframes.indexOf(newKeyframe);
 }

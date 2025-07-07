@@ -1,5 +1,5 @@
 import { AppState } from './state';
-import { interpolatePose } from './animation';
+import { updatePoseForAnimationProgress } from './animation';
 
 type RedrawFunction = () => void;
 
@@ -24,29 +24,7 @@ function animateLoop(timestamp: number, state: AppState, redraw: RedrawFunction)
     }
 
     state.animationProgress = globalTime;
-
-    let sourceFrameIndex = -1;
-    for (let i = 0; i < state.keyframes.length - 1; i++) {
-        if (globalTime >= state.keyframes[i].time && globalTime <= state.keyframes[i+1].time) {
-            sourceFrameIndex = i;
-            break;
-        }
-    }
-    if (sourceFrameIndex === -1) {
-        // If outside all segments, hold the last pose
-        state.stickFigurePose = JSON.parse(JSON.stringify(state.keyframes[state.keyframes.length - 1].pose));
-    } else {
-        const targetFrameIndex = sourceFrameIndex + 1;
-        const sourceFrame = state.keyframes[sourceFrameIndex];
-        const targetFrame = state.keyframes[targetFrameIndex];
-
-        const segmentDuration = targetFrame.time - sourceFrame.time;
-        const timeIntoSegment = globalTime - sourceFrame.time;
-        
-        const progress = (segmentDuration === 0) ? 1 : Math.min(1, timeIntoSegment / segmentDuration);
-
-        state.stickFigurePose = interpolatePose(sourceFrame.pose, targetFrame.pose, progress);
-    }
+    updatePoseForAnimationProgress(state);
     
     redraw();
     
@@ -73,14 +51,18 @@ export function stopAnimation(state: AppState, redraw: RedrawFunction) {
     state.animationRequestId = null;
     state.isAnimating = false;
     state.isPaused = false;
-    state.animationProgress = null;
     
     state.activeKeyframeIndex = state.activeKeyframeIndexBeforeAnimation;
 
     if (state.activeKeyframeIndex !== null && state.keyframes[state.activeKeyframeIndex]) {
         state.stickFigurePose = JSON.parse(JSON.stringify(state.keyframes[state.activeKeyframeIndex].pose));
+        state.animationProgress = state.keyframes[state.activeKeyframeIndex].time;
     } else if (state.keyframes.length > 0) {
+        state.activeKeyframeIndex = 0;
         state.stickFigurePose = JSON.parse(JSON.stringify(state.keyframes[0].pose));
+        state.animationProgress = state.keyframes[0].time;
+    } else {
+        state.animationProgress = 0;
     }
 
     redraw();

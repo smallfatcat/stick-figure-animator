@@ -13,8 +13,15 @@
         <div id="controls-panel">
             <button id="animate-btn">Animate</button>
             <button id="pause-btn">Pause</button>
+            <button id="insert-keyframe-btn">Insert</button>
             <button id="mode-btn">Loop</button>
-            <button id="onion-btn">Onion</button>
+            <div class="onion-control-group">
+                <button id="onion-btn">Onion</button>
+                <label for="onion-before-input">Before:</label>
+                <input type="number" id="onion-before-input" min="0" max="10" step="1" value="5">
+                <label for="onion-after-input">After:</label>
+                <input type="number" id="onion-after-input" min="0" max="10" step="1" value="5">
+            </div>
             <button id="export-btn">Export</button>
             <button id="import-btn">Import</button>
             <div class="duration-control">

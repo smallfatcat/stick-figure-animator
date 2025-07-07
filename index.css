@@ -32,19 +32,19 @@ canvas#game-canvas {
     top: 555px; /* Aligns with where canvas buttons were */
     left: 0;
     width: 800px; /* Match canvas width */
-    height: 35px;
+    height: 30px;
 }
 
 #controls-panel button {
     background-color: #c78f3d;
     color: #121212;
     border: none;
-    width: auto;
-    height: 100%;
-    border-radius: 4px;
+    padding: 0 12px;
+    height: 80%;
+    border-radius: 2px;
     font-family: inherit;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     transition: background-color 0.2s;
 }
@@ -64,23 +64,60 @@ canvas#game-canvas {
     cursor: not-allowed;
 }
 
+.onion-control-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 100%;
+}
+
+.onion-control-group label {
+    color: #FFF;
+    font-size: 13px;
+}
+
+.onion-control-group input {
+    background-color: #333;
+    color: #FFF;
+    border: 1px solid #555;
+    padding: 4px;
+    border-radius: 4px;
+    width: 35px;
+    font-size: 13px;
+    box-sizing: border-box;
+    height: 80%;
+    -moz-appearance: textfield;
+}
+
+.onion-control-group input::-webkit-outer-spin-button,
+.onion-control-group input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+
+.onion-control-group input:disabled {
+    background-color: #555;
+    color: #999;
+    cursor: not-allowed;
+}
+
 .duration-control {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     color: #FFF;
-    font-size: 16px;
-    margin-left: 16px;
+    font-size: 14px;
 }
 
 #duration-input {
     background-color: #333;
     color: #FFF;
     border: 1px solid #555;
-    padding: 5px 8px;
+    padding: 4px 6px;
     border-radius: 4px;
-    width: 60px;
-    font-size: 16px;
+    width: 55px;
+    font-size: 14px;
     box-sizing: border-box; /* Ensures padding is included in width */
 }
 

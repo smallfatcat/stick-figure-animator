@@ -28,19 +28,34 @@ export function redraw(
     drawGuides(ctx, state.groundY, state.verticalGuideX, canvas.width, layout.POSING_AREA_HEIGHT, layout.GUIDE_GRABBER_SIZE, state.hoveredGround, state.hoveredVerticalGuide);
     
     if (state.isOnionModeEnabled && state.activeKeyframeIndex !== null) {
-        if (state.activeKeyframeIndex > 0) {
-            const prevPose = state.keyframes[state.activeKeyframeIndex - 1]?.pose;
-            if (prevPose && prevPose.hip && prevPose.angles) {
-                const prevPoints = calculatePointsFromPose(prevPose, kinematics.hierarchy, kinematics.boneLengths, kinematics.children);
-                drawStickFigure(ctx, prevPoints, { strokeStyle: 'rgba(255, 255, 255, 0.25)', fillStyle: 'rgba(255, 255, 255, 0.25)' });
+        const activeIndex = state.activeKeyframeIndex;
+        const baseOpacity = 0.4; // Slightly increased base opacity for better color visibility
+
+        const drawOnionFrame = (frameIndex: number, distance: number, colorRgb: string) => {
+             if (frameIndex >= 0 && frameIndex < state.keyframes.length) {
+                const pose = state.keyframes[frameIndex]?.pose;
+                if (pose && pose.hip && pose.angles) {
+                    const opacity = baseOpacity / distance;
+                    if (opacity > 0.05) { // Don't draw if it's basically invisible
+                        const points = calculatePointsFromPose(pose, kinematics.hierarchy, kinematics.boneLengths, kinematics.children);
+                        const style = `rgba(${colorRgb}, ${opacity})`;
+                        drawStickFigure(ctx, points, { strokeStyle: style, fillStyle: style });
+                    }
+                }
             }
+        };
+
+        const beforeColorRgb = '255, 87, 34'; // A vibrant orange-red for past frames
+        const afterColorRgb = '33, 150, 243';  // A clear, vibrant blue for future frames
+
+        // Draw 'before' frames (red)
+        for (let i = 1; i <= state.onionSkinBefore; i++) {
+            drawOnionFrame(activeIndex - i, i, beforeColorRgb);
         }
-        if (state.activeKeyframeIndex < state.keyframes.length - 1) {
-            const nextPose = state.keyframes[state.activeKeyframeIndex + 1]?.pose;
-            if (nextPose && nextPose.hip && nextPose.angles) {
-                const nextPoints = calculatePointsFromPose(nextPose, kinematics.hierarchy, kinematics.boneLengths, kinematics.children);
-                drawStickFigure(ctx, nextPoints, { strokeStyle: 'rgba(255, 255, 255, 0.25)', fillStyle: 'rgba(255, 255, 255, 0.25)' });
-            }
+
+        // Draw 'after' frames (blue)
+        for (let i = 1; i <= state.onionSkinAfter; i++) {
+            drawOnionFrame(activeIndex + i, i, afterColorRgb);
         }
     }
     
@@ -55,17 +70,29 @@ export function redraw(
     updateControlsState(domElements, state);
 
     // Update cursor style based on current interactions
-    if (state.isAnimating) {
+    if (state.draggedThumbnailIndex !== null) {
+        canvas.style.cursor = 'grabbing';
+    } else if (state.isAnimating && !state.isPaused) {
         canvas.style.cursor = 'default';
+    } else if (state.isDraggingPlayhead) {
+        canvas.style.cursor = 'grabbing';
+    } else if (state.isDraggingGround) {
+        canvas.style.cursor = 'ns-resize';
+    } else if (state.isDraggingVerticalGuide) {
+        canvas.style.cursor = 'ew-resize';
+    } else if (state.draggedMarkerIndex !== null) {
+        canvas.style.cursor = 'grabbing';
+    } else if (state.hoveredThumbnailIndex !== null && state.hoveredDeleteIconIndex === null) {
+        canvas.style.cursor = 'grab';
+    } else if (state.hoveredPlayhead) {
+        canvas.style.cursor = 'ew-resize';
     } else if (state.hoveredGround) {
         canvas.style.cursor = 'ns-resize';
     } else if (state.hoveredVerticalGuide) {
         canvas.style.cursor = 'ew-resize';
-    } else if (state.draggedMarkerIndex !== null) {
-        canvas.style.cursor = 'grabbing';
     } else if (state.hoveredMarkerIndex !== null) {
         canvas.style.cursor = 'grab';
-    } else if (isHoveringJoint || state.hoveredThumbnailIndex !== null || state.hoveredDeleteIconIndex !== null || state.hoveredScrollLeft || state.hoveredScrollRight) {
+    } else if (isHoveringJoint || state.hoveredDeleteIconIndex !== null || state.hoveredScrollLeft || state.hoveredScrollRight) {
         canvas.style.cursor = 'pointer';
     } else {
         canvas.style.cursor = 'default';

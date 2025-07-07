@@ -65,10 +65,42 @@ function drawThumbnails(
     posingAreaHeight: number,
     isAnimating: boolean,
     kinematics: KinematicsData,
-    hoveredDeleteIconIndex: number | null
+    hoveredDeleteIconIndex: number | null,
+    draggedThumbnailIndex: number | null,
+    dropTargetIndex: number | null,
+    thumbnailGap: number
 ) {
+    // Draw drop indicator line if dragging
+    if (dropTargetIndex !== null && draggedThumbnailIndex !== null) {
+        const dropVisibleIndex = dropTargetIndex - scrollOffset;
+
+        if (dropVisibleIndex >= 0 && dropVisibleIndex <= rects.length) {
+            let indicatorX;
+            if (dropVisibleIndex < rects.length) {
+                indicatorX = rects[dropVisibleIndex].x - thumbnailGap / 2;
+            } else {
+                const lastRect = rects[rects.length - 1];
+                indicatorX = lastRect.x + lastRect.width + thumbnailGap / 2;
+            }
+
+            if (keyframes.length > 0 && rects.length > 0) {
+                ctx.save();
+                ctx.fillStyle = '#f0ad4e'; // Use highlight color for the indicator
+                ctx.fillRect(indicatorX - 1.5, rects[0].y, 3, rects[0].height);
+                ctx.restore();
+            }
+        }
+    }
+
+
     rects.forEach((rect, visibleIndex) => {
         const actualIndex = scrollOffset + visibleIndex;
+        if (actualIndex >= keyframes.length) return; // Don't process empty slots
+        
+        ctx.save();
+        if (actualIndex === draggedThumbnailIndex) {
+            ctx.globalAlpha = 0.4; // Make dragged thumbnail semi-transparent
+        }
         
         ctx.fillStyle = '#000';
         ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
@@ -130,43 +162,29 @@ function drawThumbnails(
             ctx.stroke();
             ctx.restore();
         }
+        ctx.restore(); // Restore globalAlpha
     });
 }
 
 function drawTimeline(
     ctx: CanvasRenderingContext2D,
     rect: Rect,
-    keyframes: Keyframe[],
-    activeIndex: number | null,
-    hoveredIndex: number | null,
-    isAnimating: boolean,
-    animationProgress: number | null
+    state: AppState
 ) {
+    const { keyframes, activeKeyframeIndex, hoveredMarkerIndex, isAnimating, animationProgress, isPaused, hoveredPlayhead } = state;
+
     // Draw timeline bar
     ctx.fillStyle = '#111';
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
     ctx.strokeStyle = '#555';
     ctx.lineWidth = 1;
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-
-    // Draw animation progress indicator
-    if (isAnimating && animationProgress !== null) {
-        const progressX = rect.x + animationProgress * rect.width;
-        ctx.save();
-        ctx.strokeStyle = '#3498db'; // A bright blue for visibility
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(progressX, rect.y - 4);
-        ctx.lineTo(progressX, rect.y + rect.height + 4);
-        ctx.stroke();
-        ctx.restore();
-    }
     
-    // Draw markers
+    // Draw markers first, so the playhead is drawn on top
     keyframes.forEach((kf, index) => {
         const markerRect = getTimelineMarkerRect(kf, rect);
-        const isHovered = index === hoveredIndex && !isAnimating;
-        const isActive = index === activeIndex;
+        const isHovered = index === hoveredMarkerIndex && !isAnimating;
+        const isActive = index === activeKeyframeIndex;
         const isDraggable = index > 0 && index < keyframes.length - 1;
         
         ctx.save();
@@ -189,6 +207,30 @@ function drawTimeline(
         
         ctx.restore();
     });
+    
+    // Draw animation progress indicator (playhead)
+    if (keyframes.length > 0) {
+        const progressX = rect.x + animationProgress * rect.width;
+        const canDragPlayhead = !isAnimating || isPaused;
+        const isHovered = canDragPlayhead && hoveredPlayhead;
+        
+        ctx.save();
+        ctx.strokeStyle = isHovered ? '#64faff' : '#3498db';
+        ctx.lineWidth = isHovered ? 4 : 2;
+        ctx.beginPath();
+        ctx.moveTo(progressX, rect.y - 4);
+        ctx.lineTo(progressX, rect.y + rect.height + 4);
+        ctx.stroke();
+
+        // Add a grabber circle if it's interactive
+        if (canDragPlayhead) {
+            ctx.fillStyle = isHovered ? '#64faff' : '#3498db';
+            ctx.beginPath();
+            ctx.arc(progressX, rect.y + rect.height / 2, isHovered ? 8 : 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
 }
 
 export function createLayout(canvasWidth: number, canvasHeight: number) {
@@ -196,7 +238,7 @@ export function createLayout(canvasWidth: number, canvasHeight: number) {
     const POSING_AREA_HEIGHT = canvasHeight - UI_PANEL_HEIGHT;
     const GROUND_Y_POSITION = 396;
     
-    const CONTROLS_PANEL_HEIGHT = 35;
+    const CONTROLS_PANEL_HEIGHT = 30;
     const CONTROLS_TOP_MARGIN = 15;
     const TIMELINE_Y = POSING_AREA_HEIGHT + CONTROLS_TOP_MARGIN + CONTROLS_PANEL_HEIGHT + 15;
     const TIMELINE_RECT: Rect = { x: 50, y: TIMELINE_Y, width: canvasWidth - 100, height: 12 };
@@ -228,7 +270,8 @@ export function createLayout(canvasWidth: number, canvasHeight: number) {
         VISIBLE_THUMBNAILS,
         SCROLL_LEFT_BUTTON_RECT,
         SCROLL_RIGHT_BUTTON_RECT,
-        GUIDE_GRABBER_SIZE
+        GUIDE_GRABBER_SIZE,
+        THUMBNAIL_GAP,
     };
 }
 
@@ -245,20 +288,16 @@ export function drawUI(
     const UI_PANEL_Y = layout.POSING_AREA_HEIGHT;
 
     ctx.fillStyle = '#222';
-    ctx.fillRect(0, UI_PANEL_Y, canvasWidth, canvasHeight - UI_PANEL_Y);
+    ctx.fillRect(0, UI_PANEL_Y, canvasWidth, layout.UI_PANEL_HEIGHT);
     ctx.strokeStyle = '#444';
     ctx.lineWidth = 1;
-    ctx.strokeRect(0, UI_PANEL_Y, canvasWidth, canvasHeight - UI_PANEL_Y);
+    ctx.strokeRect(0, UI_PANEL_Y, canvasWidth, layout.UI_PANEL_HEIGHT);
 
     if (state.keyframes.length > 0) {
         drawTimeline(
             ctx,
             layout.TIMELINE_RECT,
-            state.keyframes,
-            state.activeKeyframeIndex,
-            state.hoveredMarkerIndex,
-            state.isAnimating,
-            state.animationProgress
+            state
         );
     }
 
@@ -274,7 +313,10 @@ export function drawUI(
         layout.POSING_AREA_HEIGHT,
         state.isAnimating,
         kinematics,
-        state.hoveredDeleteIconIndex
+        state.hoveredDeleteIconIndex,
+        state.draggedThumbnailIndex,
+        state.dropTargetIndex,
+        layout.THUMBNAIL_GAP
     );
 
     const isLeftDisabled = state.scrollOffset === 0;
