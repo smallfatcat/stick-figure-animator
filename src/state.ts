@@ -1,4 +1,3 @@
-
 import { Point, StickFigurePoints, StickFigurePose, Keyframe } from './types';
 import { Layout } from './ui';
 import { KinematicsData } from './kinematics';
@@ -28,6 +27,7 @@ export interface AppState {
   hoveredVerticalGuide: boolean;
   hoveredMarkerIndex: number | null;
   hoveredPlayhead: boolean;
+  hoveredJointKey: keyof StickFigurePoints | null;
   scrollOffset: number;
   dropTargetIndex: number | null; // For D&D reordering
   
@@ -76,6 +76,7 @@ export function createAppState(kinematics: KinematicsData, layout: Layout): AppS
         hoveredVerticalGuide: false,
         hoveredMarkerIndex: null,
         hoveredPlayhead: false,
+        hoveredJointKey: null,
         scrollOffset: 0,
         dropTargetIndex: null,
         isOnionModeEnabled: false,

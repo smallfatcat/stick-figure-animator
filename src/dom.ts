@@ -1,6 +1,6 @@
-
 export interface DOMElements {
-    canvas: HTMLCanvasElement;
+    posingCanvas: HTMLCanvasElement;
+    uiCanvas: HTMLCanvasElement;
     importInput: HTMLInputElement;
     durationInput: HTMLInputElement;
     durationLabel: HTMLLabelElement;
@@ -20,7 +20,8 @@ export interface DOMElements {
 }
 
 export function getDOMElements(): DOMElements {
-    const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+    const posingCanvas = document.getElementById('posing-canvas') as HTMLCanvasElement;
+    const uiCanvas = document.getElementById('ui-canvas') as HTMLCanvasElement;
     const importInput = document.getElementById('import-input') as HTMLInputElement;
     const durationInput = document.getElementById('duration-input') as HTMLInputElement;
     const durationLabel = document.getElementById('duration-label') as HTMLLabelElement;
@@ -38,9 +39,9 @@ export function getDOMElements(): DOMElements {
     const onionBeforeInput = document.getElementById('onion-before-input') as HTMLInputElement;
     const onionAfterInput = document.getElementById('onion-after-input') as HTMLInputElement;
 
-    if (!canvas || !importInput || !durationInput || !durationLabel || !timeModeToggleBtn || !animateBtn || !pauseBtn || !insertKeyframeBtn || !modeBtn || !ikModeBtn || !onionBtn || !fullOnionSkinBtn || !motionTrailStepInput || !exportBtn || !importBtn || !onionBeforeInput || !onionAfterInput) {
+    if (!posingCanvas || !uiCanvas || !importInput || !durationInput || !durationLabel || !timeModeToggleBtn || !animateBtn || !pauseBtn || !insertKeyframeBtn || !modeBtn || !ikModeBtn || !onionBtn || !fullOnionSkinBtn || !motionTrailStepInput || !exportBtn || !importBtn || !onionBeforeInput || !onionAfterInput) {
         throw new Error("Could not find all required DOM elements.");
     }
 
-    return { canvas, importInput, durationInput, durationLabel, timeModeToggleBtn, animateBtn, pauseBtn, insertKeyframeBtn, modeBtn, ikModeBtn, onionBtn, fullOnionSkinBtn, motionTrailStepInput, exportBtn, importBtn, onionBeforeInput, onionAfterInput };
+    return { posingCanvas, uiCanvas, importInput, durationInput, durationLabel, timeModeToggleBtn, animateBtn, pauseBtn, insertKeyframeBtn, modeBtn, ikModeBtn, onionBtn, fullOnionSkinBtn, motionTrailStepInput, exportBtn, importBtn, onionBeforeInput, onionAfterInput };
 }

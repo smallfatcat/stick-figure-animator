@@ -23,62 +23,73 @@ export function autoSaveCurrentPoseIfActive(state: AppState) {
 
 export function addKeyframe(state: AppState, layout: any) {
     autoSaveCurrentPoseIfActive(state);
-        
-    const newKeyframe: Keyframe = { pose: JSON.parse(JSON.stringify(state.stickFigurePose)), time: 0 };
     
-    const insertIndex = state.activeKeyframeIndex === null ? state.keyframes.length : state.activeKeyframeIndex + 1;
+    let keyframeTime: number;
 
-    let newKeyframeTime: number;
-
+    // Step 1: Determine the base time for the keyframe
     if (state.keyframes.length === 0) {
-        // First keyframe is always at time 0.
-        newKeyframeTime = 0;
+        keyframeTime = 0;
+    } else if (state.keyframes.length === 1) {
+        keyframeTime = 1.0;
     } else {
-        const nextKeyframe = insertIndex < state.keyframes.length ? state.keyframes[insertIndex] : null;
+        keyframeTime = state.animationProgress;
+    }
 
+    // Ensure keyframes are sorted before finding indices
+    state.keyframes.sort((a, b) => a.time - b.time);
+
+    // Step 2: Check if a keyframe already exists at this exact time
+    const existingKeyframeIndex = state.keyframes.findIndex(kf => kf.time === keyframeTime);
+
+    if (existingKeyframeIndex !== -1) {
+        // A keyframe exists. We need to insert the new one between it and the next one.
+        const nextKeyframe = state.keyframes[existingKeyframeIndex + 1];
         if (nextKeyframe) {
-            // Inserting between two frames. The previous frame is at insertIndex - 1.
-            const prevKeyframe = state.keyframes[insertIndex - 1];
-            newKeyframeTime = prevKeyframe.time + (nextKeyframe.time - prevKeyframe.time) / 2;
+            // Insert halfway to the next frame.
+            keyframeTime = keyframeTime + (nextKeyframe.time - keyframeTime) / 2;
         } else {
-            // Appending to the end. insertIndex will be state.keyframes.length.
-            const lastKeyframe = state.keyframes[state.keyframes.length - 1];
-            
-            const oldDuration = state.animationTotalDuration;
-            const lastKeyframeAbsoluteTime = lastKeyframe.time * oldDuration;
-            const newKeyframeAbsoluteTime = lastKeyframeAbsoluteTime + 1000; // Add 1 second.
-            const newDuration = newKeyframeAbsoluteTime;
-
-            // Set new duration.
-            state.animationTotalDuration = newDuration;
-
-            // Re-normalize all previous keyframes. Guard against division by zero.
-            if (newDuration > 0) {
-                for (const kf of state.keyframes) {
-                    kf.time = (kf.time * oldDuration) / newDuration;
-                }
-            }
-            
-            newKeyframeTime = 1.0;
+            // This is the last keyframe, so we are adding at the end.
+            // The logic below will handle extending the animation.
+            keyframeTime = 1.0;
         }
     }
-    
-    newKeyframe.time = newKeyframeTime;
-    
-    state.keyframes.splice(insertIndex, 0, newKeyframe);
-    
-    state.activeKeyframeIndex = insertIndex;
-    
-    state.animationProgress = newKeyframeTime;
 
-    // Make sure the new keyframe is visible.
-    const activeIndex = state.activeKeyframeIndex;
-    if (activeIndex !== null) {
-        if (activeIndex < state.scrollOffset) {
-            state.scrollOffset = activeIndex;
-        } else if (activeIndex >= state.scrollOffset + layout.VISIBLE_THUMBNAILS) {
-            state.scrollOffset = activeIndex - layout.VISIBLE_THUMBNAILS + 1;
+    const newKeyframe: Keyframe = { 
+        pose: JSON.parse(JSON.stringify(state.stickFigurePose)), 
+        time: keyframeTime
+    };
+
+    // Step 3: Handle extending the animation if adding at the end
+    if (state.keyframes.length >= 1 && keyframeTime >= 1.0) {
+        const oldDuration = state.animationTotalDuration;
+        const newDuration = oldDuration + 1000; // Add 1 second
+        state.animationTotalDuration = newDuration;
+
+        // Renormalize existing keyframes to fit the new duration
+        if (newDuration > 0) {
+            for (const kf of state.keyframes) {
+                kf.time = (kf.time * oldDuration) / newDuration;
+            }
         }
+        // The new keyframe is now the new end of the animation.
+        newKeyframe.time = 1.0;
+    }
+
+    // Step 4: Add the new keyframe and update state
+    state.keyframes.push(newKeyframe);
+    state.keyframes.sort((a, b) => a.time - b.time);
+    
+    const newIndex = state.keyframes.indexOf(newKeyframe);
+    state.activeKeyframeIndex = newIndex;
+    
+    // Update the playhead to match the new keyframe's time
+    state.animationProgress = newKeyframe.time;
+
+    // Make sure the new keyframe is visible in the timeline.
+    if (newIndex < state.scrollOffset) {
+        state.scrollOffset = newIndex;
+    } else if (newIndex >= state.scrollOffset + layout.VISIBLE_THUMBNAILS) {
+        state.scrollOffset = newIndex - layout.VISIBLE_THUMBNAILS + 1;
     }
 }
 

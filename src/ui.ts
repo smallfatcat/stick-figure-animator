@@ -1,5 +1,3 @@
-
-
 import { Rect, Keyframe, StickFigurePose } from './types';
 import { drawStickFigure } from './drawing';
 import { calculatePointsFromPose } from './kinematics';
@@ -269,15 +267,11 @@ function drawTimeline(
     }
 }
 
-export function createLayout(canvasWidth: number, canvasHeight: number) {
-    const UI_PANEL_HEIGHT = 180;
-    const POSING_AREA_HEIGHT = canvasHeight - UI_PANEL_HEIGHT;
+export function createLayout(uiCanvasWidth: number, uiCanvasHeight: number, posingAreaHeight: number) {
     const GROUND_Y_POSITION = 396;
     
-    const CONTROLS_PANEL_HEIGHT = 65; // Updated for two rows
-    const CONTROLS_TOP_MARGIN = 5; // Reduced margin
-    const TIMELINE_Y = POSING_AREA_HEIGHT + CONTROLS_TOP_MARGIN + CONTROLS_PANEL_HEIGHT + 5; // Tighter layout
-    const TIMELINE_RECT: Rect = { x: 50, y: TIMELINE_Y, width: canvasWidth - 100, height: 12 };
+    const TIMELINE_Y = 5;
+    const TIMELINE_RECT: Rect = { x: 50, y: TIMELINE_Y, width: uiCanvasWidth - 100, height: 12 };
 
     const THUMBNAIL_WIDTH = 100;
     const THUMBNAIL_HEIGHT = 75;
@@ -286,7 +280,7 @@ export function createLayout(canvasWidth: number, canvasHeight: number) {
     const VISIBLE_THUMBNAILS = 5;
     const GUIDE_GRABBER_SIZE = 40;
     const totalThumbWidth = VISIBLE_THUMBNAILS * THUMBNAIL_WIDTH + (VISIBLE_THUMBNAILS - 1) * THUMBNAIL_GAP;
-    const thumbStartX = (canvasWidth - totalThumbWidth) / 2;
+    const thumbStartX = (uiCanvasWidth - totalThumbWidth) / 2;
     const THUMBNAIL_RECTS: Rect[] = Array.from({ length: VISIBLE_THUMBNAILS }, (_, i) => ({
         x: thumbStartX + i * (THUMBNAIL_WIDTH + THUMBNAIL_GAP),
         y: THUMBNAIL_Y,
@@ -298,8 +292,8 @@ export function createLayout(canvasWidth: number, canvasHeight: number) {
     const SCROLL_RIGHT_BUTTON_RECT: Rect = { x: thumbStartX + totalThumbWidth + THUMBNAIL_GAP, y: THUMBNAIL_Y, width: SCROLL_BUTTON_WIDTH, height: THUMBNAIL_HEIGHT };
     
     return {
-        UI_PANEL_HEIGHT,
-        POSING_AREA_HEIGHT,
+        UI_PANEL_HEIGHT: uiCanvasHeight,
+        POSING_AREA_HEIGHT: posingAreaHeight,
         GROUND_Y_POSITION,
         TIMELINE_RECT,
         THUMBNAIL_RECTS,
@@ -321,13 +315,7 @@ export function drawUI(
     state: AppState,
     kinematics: KinematicsData
 ) {
-    const UI_PANEL_Y = layout.POSING_AREA_HEIGHT;
-
-    ctx.fillStyle = '#222';
-    ctx.fillRect(0, UI_PANEL_Y, canvasWidth, layout.UI_PANEL_HEIGHT);
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0, UI_PANEL_Y, canvasWidth, layout.UI_PANEL_HEIGHT);
+    ctx.clearRect(0, 0, canvasWidth, _canvasHeight);
 
     if (state.keyframes.length > 0) {
         drawTimeline(
@@ -345,8 +333,8 @@ export function drawUI(
         state.activeKeyframeIndex,
         state.hoveredThumbnailIndex,
         state.scrollOffset,
-        canvasWidth,
-        layout.POSING_AREA_HEIGHT,
+        kinematics.canvasWidth,
+        kinematics.posingAreaHeight,
         state.isAnimating,
         kinematics,
         state.hoveredDeleteIconIndex,

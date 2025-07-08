@@ -1,4 +1,3 @@
-
 import { AppState } from './state';
 import { getPoseAtProgress, updatePoseForAnimationProgress } from './animation';
 import { RedrawFunction } from './types';
@@ -59,7 +58,12 @@ function generateOnionTrail(state: AppState, kinematics: KinematicsData, canvas:
 }
 
 
-function animateLoop(timestamp: number, state: AppState, redrawCanvas: RedrawFunction) {
+function animateLoop(
+    timestamp: number, 
+    state: AppState, 
+    redrawPosingCanvas: RedrawFunction,
+    redrawUICanvas: RedrawFunction
+) {
     if (!state.isAnimating || state.animationStartTime === null || state.keyframes.length < 2) {
         // The stop function will handle the UI update.
         return;
@@ -82,14 +86,23 @@ function animateLoop(timestamp: number, state: AppState, redrawCanvas: RedrawFun
     state.animationProgress = globalTime;
     updatePoseForAnimationProgress(state);
     
-    redrawCanvas();
+    redrawPosingCanvas();
+    redrawUICanvas();
     
     if (state.isAnimating) {
-        state.animationRequestId = requestAnimationFrame((ts) => animateLoop(ts, state, redrawCanvas));
+        state.animationRequestId = requestAnimationFrame((ts) => animateLoop(ts, state, redrawPosingCanvas, redrawUICanvas));
     }
 }
 
-export function startAnimation(state: AppState, updateUI: RedrawFunction, redrawCanvas: RedrawFunction, kinematics: KinematicsData, layout: Layout, canvas: HTMLCanvasElement) {
+export function startAnimation(
+    state: AppState, 
+    updateUI: RedrawFunction, 
+    redrawPosingCanvas: RedrawFunction, 
+    redrawUICanvas: RedrawFunction,
+    kinematics: KinematicsData, 
+    layout: Layout, 
+    canvas: HTMLCanvasElement
+) {
     if (state.keyframes.length < 2) return;
     
     generateOnionTrail(state, kinematics, canvas, layout);
@@ -103,7 +116,7 @@ export function startAnimation(state: AppState, updateUI: RedrawFunction, redraw
     state.activeKeyframeIndex = null; 
 
     updateUI(); // Update controls to "Stop", etc. once.
-    state.animationRequestId = requestAnimationFrame((ts) => animateLoop(ts, state, redrawCanvas));
+    state.animationRequestId = requestAnimationFrame((ts) => animateLoop(ts, state, redrawPosingCanvas, redrawUICanvas));
 }
 
 export function stopAnimation(state: AppState, updateUI: RedrawFunction) {
@@ -140,12 +153,17 @@ export function pauseAnimation(state: AppState, updateUI: RedrawFunction) {
     updateUI();
 }
 
-export function resumeAnimation(state: AppState, updateUI: RedrawFunction, redrawCanvas: RedrawFunction) {
+export function resumeAnimation(
+    state: AppState, 
+    updateUI: RedrawFunction, 
+    redrawPosingCanvas: RedrawFunction,
+    redrawUICanvas: RedrawFunction
+) {
     if (!state.isAnimating || !state.isPaused) return;
     state.isPaused = false;
     if (state.animationStartTime) {
         state.animationStartTime = performance.now() - state.timeElapsedBeforePause;
     }
     updateUI(); // Update controls to "Pause", etc. once.
-    state.animationRequestId = requestAnimationFrame((ts) => animateLoop(ts, state, redrawCanvas));
+    state.animationRequestId = requestAnimationFrame((ts) => animateLoop(ts, state, redrawPosingCanvas, redrawUICanvas));
 }

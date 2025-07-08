@@ -8,6 +8,8 @@ export type KinematicsData = {
     children: { [key: string]: string[] };
     boneLengths: { [key: string]: number };
     defaultPose: StickFigurePose;
+    canvasWidth: number;
+    posingAreaHeight: number;
 };
 
 
@@ -117,5 +119,5 @@ export function createDefaultKinematics(canvasWidth: number, posingAreaHeight: n
 
     const defaultPose = calculatePoseFromPoints(defaultPoints, hierarchy);
 
-    return { hierarchy, children, boneLengths, defaultPose };
+    return { hierarchy, children, boneLengths, defaultPose, canvasWidth, posingAreaHeight };
 }

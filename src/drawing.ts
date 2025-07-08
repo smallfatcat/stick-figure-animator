@@ -110,40 +110,43 @@ export function drawStickFigure(
     ctx.stroke();
 }
 
+export function checkHoveringJoint(figure: StickFigurePoints, radius: number, mousePos: Point | null, isIKMode: boolean = false): keyof StickFigurePoints | null {
+    if (!mousePos) return null;
 
-export function drawGrabHandles(ctx: CanvasRenderingContext2D, figure: StickFigurePoints, radius: number, mousePos: Point | null, isIKMode: boolean = false): boolean {
-  if (!mousePos) return false;
-
-  ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-  ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
-  ctx.lineWidth = 2;
-
-  let isHoveringJoint = false;
-  for (const key in figure) {
-    const point = figure[key as keyof StickFigurePoints];
-    const distance = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
-    
-    if (distance < radius) {
-      // In IK mode, only show handles for end effectors
-      if (isIKMode) {
-        const endEffectors = ['leftHand', 'rightHand', 'leftFoot', 'rightFoot', 'leftToe', 'rightToe'];
-        if (!endEffectors.includes(key)) {
-          continue;
+    for (const key in figure) {
+        const point = figure[key as keyof StickFigurePoints];
+        const distance = Math.hypot(mousePos.x - point.x, mousePos.y - point.y);
+        
+        if (distance < radius) {
+            if (isIKMode) {
+                const endEffectors = ['leftHand', 'rightHand', 'leftFoot', 'rightFoot', 'leftToe', 'rightToe'];
+                if (endEffectors.includes(key)) {
+                    return key as keyof StickFigurePoints;
+                }
+            } else {
+                return key as keyof StickFigurePoints;
+            }
         }
-        // Use different color for IK mode
+    }
+    return null;
+}
+
+export function drawGrabHandles(ctx: CanvasRenderingContext2D, figure: StickFigurePoints, radius: number, hoveredJointKey: keyof StickFigurePoints | null, isIKMode: boolean = false) {
+    if (!hoveredJointKey) return;
+
+    const point = figure[hoveredJointKey];
+    
+    if (isIKMode) {
         ctx.fillStyle = 'rgba(0, 255, 255, 0.4)';
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
-      } else {
+    } else {
         ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
         ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
-      }
-      
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      isHoveringJoint = true;
     }
-  }
-  return isHoveringJoint;
+    ctx.lineWidth = 2;
+      
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
 }

@@ -1,5 +1,3 @@
-
-
 body {
     margin: 0;
     padding: 0;
@@ -27,23 +25,33 @@ body {
     font-size: 12px;
 }
 
-canvas#game-canvas {
+#posing-canvas-container {
+    width: 800px;
+    height: 540px;
+    margin-bottom: 5px;
+}
+
+#ui-canvas-container {
+    width: 800px;
+    height: 120px;
+}
+
+#posing-canvas, #ui-canvas {
+    width: 100%;
+    height: 100%;
     border: 1px solid #444;
     background-color: #000;
     cursor: default;
 }
 
 #controls-panel {
-    position: absolute;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 5px; /* Gap between rows */
-    top: 545px; /* 540 (posing area) + 5 (margin) */
-    left: 0;
     width: 800px; /* Match canvas width */
-    height: 65px; /* Two rows of 30px + 5px gap */
+    margin-top: 5px;
 }
 
 .controls-row {
