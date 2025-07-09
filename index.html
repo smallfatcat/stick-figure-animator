@@ -1,16 +1,20 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Stick Figure Animator (demo)</title>
-  <script type="module" crossorigin src="/stick-figure-animator/assets/index-B7rinosr.js"></script>
-  <link rel="stylesheet" crossorigin href="/stick-figure-animator/assets/index-Dpyz7Vjo.css">
+  <script type="module" crossorigin src="/stick-figure-animator/assets/index-5MmfUL76.js"></script>
+  <link rel="stylesheet" crossorigin href="/stick-figure-animator/assets/index-BZHpFpQi.css">
 </head>
 <body>
     <div id="app-container">
-        <canvas id="game-canvas"></canvas>
+        <div id="posing-canvas-container">
+            <canvas id="posing-canvas"></canvas>
+        </div>
+        <div id="ui-canvas-container">
+            <canvas id="ui-canvas"></canvas>
+        </div>
         <div id="controls-panel">
             <div class="controls-row">
                 <button id="animate-btn" class="icon-btn" title="Animate"></button>
@@ -42,7 +46,7 @@
             </div>
         </div>
         <input type="file" id="import-input" accept="application/json" style="display: none;" />
-        <div id="version-info">Version 1.1.1</div>
+        <div id="version-info">Version 1.2.0</div>
     </div>
 </body>
 </html>
