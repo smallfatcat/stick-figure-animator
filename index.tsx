@@ -1,14 +1,17 @@
 import './index.css';
 
 import { getDOMElements } from './src/dom';
-import { createAppState } from './src/state';
+import { createRefactoredAppState, RefactoredAppState, createLegacyStateAdapter } from './src/state/refactoredState';
 import { createLayout } from './src/ui';
 import { createDefaultKinematics } from './src/kinematics';
 import { redrawPosingCanvas, redrawUICanvas, updateCursor } from './src/renderer';
-import { setupEventHandlers } from './src/eventHandlers';
+import { setupEventHandlers } from './src/handlers/eventHandlers';
 import { icons } from './src/icons';
 import { updateControlsState } from './src/controls';
 import { RedrawFunction } from './src/types';
+import { AnimationService } from './src/services/animationService';
+import { KeyframeService } from './src/services/keyframeService';
+import { UIService } from './src/services/uiService';
 
 function main() {
     const dom = getDOMElements();
@@ -27,18 +30,32 @@ function main() {
     const layout = createLayout(uiCanvas.width, uiCanvas.height, posingCanvas.height);
     const kinematics = createDefaultKinematics(posingCanvas.width, posingCanvas.height);
     
-    const state = createAppState(kinematics, layout);
-
-    const redrawPosing = () => redrawPosingCanvas(posingCtx, posingCanvas, state, layout, kinematics);
-    const redrawUI = () => redrawUICanvas(uiCtx, uiCanvas, state, layout, kinematics);
+    // Use the new modular state
+    const state: RefactoredAppState = createRefactoredAppState(kinematics, layout);
     
-    const updateUI: RedrawFunction = () => {
-        updateControlsState(dom, state);
-        redrawPosing();
-        redrawUI();
-        updateCursor(posingCanvas, uiCanvas, state);
+    // Create two-way adapter for legacy compatibility
+    const legacyState = createLegacyStateAdapter(state);
+
+    // Redraw functions using new state
+    const redrawPosing = () => {
+        redrawPosingCanvas(posingCtx, posingCanvas, legacyState, layout, kinematics);
+    };
+    const redrawUI = () => {
+        redrawUICanvas(uiCtx, uiCanvas, legacyState, layout, kinematics);
     };
 
+    // Instantiate services (after redraw functions are defined)
+    const animationService = new AnimationService(state, redrawPosing, redrawPosing, redrawUI, kinematics, layout, posingCanvas);
+    const keyframeService = new KeyframeService(state);
+    const uiService = new UIService(state);
+
+    // Update UI using new state and services
+    const updateUI: RedrawFunction = () => {
+        updateControlsState(dom, legacyState);
+        redrawPosing();
+        redrawUI();
+        updateCursor(posingCanvas, uiCanvas, legacyState);
+    };
 
     // Set initial static icons
     insertKeyframeBtn.innerHTML = icons.insert;
@@ -48,7 +65,8 @@ function main() {
     importBtn.innerHTML = icons.import;
     ikModeBtn.innerHTML = icons.ik;
 
-    setupEventHandlers(dom, state, layout, kinematics, updateUI, redrawPosing, redrawUI);
+    // Pass new state and services to handlers
+    setupEventHandlers(dom, legacyState, layout, kinematics, updateUI, redrawPosing, redrawUI);
     
     // Initial UI setup
     updateUI();

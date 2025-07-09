@@ -156,3 +156,25 @@ export function insertKeyframeAtTime(state: AppState, pose: StickFigurePose, tim
 
     return state.keyframes.indexOf(newKeyframe);
 }
+
+export function renormalizeKeyframeTimes(keyframes: Keyframe[]) {
+    if (keyframes.length < 2) {
+        if (keyframes.length === 1) keyframes[0].time = 0;
+        return;
+    }
+    const firstTime = keyframes[0].time;
+    const lastTime = keyframes[keyframes.length - 1].time;
+    const duration = lastTime - firstTime;
+    if (duration === 0) {
+        // All times are the same, just space them evenly
+        keyframes.forEach((kf, i) => {
+            kf.time = i / (keyframes.length - 1);
+        });
+        return;
+    }
+    keyframes[0].time = 0;
+    for (let i = 1; i < keyframes.length - 1; i++) {
+        keyframes[i].time = (keyframes[i].time - firstTime) / duration;
+    }
+    keyframes[keyframes.length - 1].time = 1;
+}
